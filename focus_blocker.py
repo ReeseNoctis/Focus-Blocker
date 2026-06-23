@@ -90,6 +90,26 @@ _BACKUP_PATH = Path(str(HOSTS_PATH) + ".focus_blocker_backup")
 
 _CONFIG_DIR = Path(__file__).resolve().parent / "config"
 _CONFIG_FILE = _CONFIG_DIR / "sites.json"
+_STATE_FILE = _CONFIG_DIR / "session_state.json"
+
+# Encouraging quotes for session completion
+_QUOTES = [
+    "The only way to do great work is to love what you do. — Steve Jobs",
+    "Focus is the key that unlocks extraordinary results.",
+    "Small daily improvements lead to stunning long-term results.",
+    "Your future is created by what you do today, not tomorrow.",
+    "Discipline is choosing between what you want now and what you want most.",
+    "The successful warrior is the average man, with laser-like focus.",
+    "It's not about having time, it's about making time.",
+    "Deep work is the superpower of the 21st century.",
+    "You don't have to be great to start, but you have to start to be great.",
+    "Stay focused, stay humble, stay hungry.",
+    "What you focus on grows. Focus on what matters.",
+    "The best investment you can make is in yourself.",
+    "Every hour of focused work is a brick in your cathedral.",
+    "Motivation gets you started. Discipline keeps you going.",
+    "The difference between ordinary and extraordinary is that little extra.",
+]
 
 
 class _Config:
@@ -777,14 +797,18 @@ def _run_countdown(total_minutes: int, sites: list[str]) -> bool:
         pass
 
     if completed:
+        import random
+        duration_str = _fmt_time(total_seconds)
+        quote = random.choice(_QUOTES)
         console.clear()
         console.print()
         console.print(
             Panel(
                 Align.center(
                     Text(
-                        "🎉  Focus session complete!  🎉\n\n"
-                        "Great work — time to take a break.",
+                        f"🎉  Focus session complete!  🎉\n\n"
+                        f"You were focused for {duration_str}.\n\n"
+                        f"💬 {quote}",
                         style="bold green",
                         justify="center",
                     ),
@@ -851,6 +875,7 @@ def _start_focus_flow() -> None:
     backup_hosts()
     count = block_sites(sites)
     flush_dns()
+    _record_session_start()
     print(f"🔒 {count} websites blocked. DNS cache flushed.\n")
 
     # 5. Timer (wrapped in finally for guaranteed restore)
@@ -905,6 +930,9 @@ def _silent_block() -> None:
     count = block_sites(sites)
     flush_dns()
 
+    # Record session start for completion summary
+    _record_session_start()
+
     # Start local status server
     _start_status_server(sites)
 
@@ -944,8 +972,13 @@ def _silent_unblock() -> None:
             _restore_immutable_flag()
             flush_dns()
             msg = "🌐 Sites unblocked (recovered without backup)."
+            summary = _session_summary()
             print(f"  {msg}")
-            _notify("Focus Blocker", msg)
+            if summary:
+                print(f"\n  {summary}\n")
+                _notify("Focus Blocker 🎉", summary)
+            else:
+                _notify("Focus Blocker", msg)
             sys.exit(0)
         else:
             print("  ℹ️  Sites are not currently blocked.")
@@ -953,9 +986,13 @@ def _silent_unblock() -> None:
 
     if restore_hosts():
         flush_dns()
-        msg = "🌐 All sites unblocked — happy browsing!"
-        print(f"  {msg}")
-        _notify("Focus Blocker", msg)
+        summary = _session_summary()
+        if summary:
+            print(f"\n  {summary}\n")
+            _notify("Focus Blocker 🎉", summary)
+        else:
+            print("  🌐 All sites unblocked — happy browsing!")
+            _notify("Focus Blocker", "All sites unblocked — happy browsing!")
 
 
 def _notify(title: str, message: str) -> None:
@@ -970,6 +1007,43 @@ def _notify(title: str, message: str) -> None:
         ], capture_output=True, timeout=3)
     except Exception:
         pass  # notifications are non-critical
+
+
+def _record_session_start() -> None:
+    """Record the focus session start time to a state file."""
+    import json
+    _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    _STATE_FILE.write_text(json.dumps({"start": time.time()}))
+
+
+def _session_summary() -> str | None:
+    """Return a completion summary string (duration + quote), or None if no session found."""
+    import json, random
+    try:
+        data = json.loads(_STATE_FILE.read_text())
+        start = data.get("start")
+    except Exception:
+        return None
+
+    if not start:
+        return None
+
+    elapsed = int(time.time() - start)
+    _STATE_FILE.unlink(missing_ok=True)
+
+    # Format duration
+    if elapsed < 60:
+        duration = f"{elapsed}s"
+    elif elapsed < 3600:
+        m, s = divmod(elapsed, 60)
+        duration = f"{m}min {s}s"
+    else:
+        h, remainder = divmod(elapsed, 3600)
+        m = remainder // 60
+        duration = f"{h}h {m}min"
+
+    quote = random.choice(_QUOTES)
+    return f"🎉 Focus session complete! You were focused for {duration}.\n💬 {quote}"
 
 
 def _open_config() -> None:
