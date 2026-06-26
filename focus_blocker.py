@@ -1075,18 +1075,15 @@ def _start_status_server(sites: list[str], total_seconds: int = 0) -> None:
 
 
 def _stop_status_server() -> None:
-    """Stop the local HTTP status server by killing processes on our ports."""
+    """Stop the local HTTP status server (delegates to focus_server.py stop)."""
     import subprocess
-    for port in ["18999", "80"]:
-        try:
-            r = subprocess.run(
-                ["lsof", "-ti", f"TCP:{port}"],
-                capture_output=True, text=True, timeout=5,
-            )
-            for pid in r.stdout.strip().split():
-                os.kill(int(pid), signal.SIGTERM)
-        except Exception:
-            pass
+    try:
+        subprocess.run(
+            [sys.executable, str(_SERVER_SCRIPT), "stop"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except Exception:
+        pass  # server is non-critical
 
 
 def main() -> None:

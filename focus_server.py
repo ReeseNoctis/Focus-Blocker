@@ -25,6 +25,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 PORT_HTTP = 80
 PORT_STATUS = 18999
 CONFIG_DIR = Path(__file__).resolve().parent / "config"
+PID_FILE = CONFIG_DIR / "server_pids.json"
 
 # ── HTML page ──────────────────────────────────────────────────
 
@@ -182,6 +183,7 @@ def start_server(sites: list[str], total_seconds: int = 0) -> bool:
     _blocked_sites = sites
 
     started_any = False
+    child_pids: list[int] = []
     for port in [PORT_STATUS, PORT_HTTP]:
         if is_port_in_use(port):
             print(f"  ⚠️  Port {port} already in use — skipping")
@@ -198,25 +200,36 @@ def start_server(sites: list[str], total_seconds: int = 0) -> bool:
                 sys.exit(0)
             else:
                 server.server_close()
+                child_pids.append(pid)
                 started_any = True
                 print(f"  🌐 Server on port {port} (pid {pid})")
         except Exception as exc:
             print(f"  ❌ Port {port}: {exc}")
 
+    # Persist PIDs so stop_server() can selectively kill only our own processes
+    if child_pids:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        PID_FILE.write_text(json.dumps({"pids": child_pids}))
+
     return started_any
 
 
 def stop_server() -> None:
-    for port in [str(PORT_STATUS), str(PORT_HTTP)]:
+    """Kill only the server processes we started (tracked via PID file)."""
+    try:
+        data = json.loads(PID_FILE.read_text())
+        pids = data.get("pids", [])
+    except (FileNotFoundError, json.JSONDecodeError):
+        return  # nothing to stop
+
+    for pid in pids:
         try:
-            r = subprocess.run(
-                ["lsof", "-ti", f"TCP:{port}"],
-                capture_output=True, text=True, timeout=5,
-            )
-            for p in r.stdout.strip().split():
-                os.kill(int(p), signal.SIGTERM)
-        except Exception:
-            pass
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass  # process already gone
+
+    # Clean up
+    PID_FILE.unlink(missing_ok=True)
 
 
 # ── CLI ───────────────────────────────────────────────────────
