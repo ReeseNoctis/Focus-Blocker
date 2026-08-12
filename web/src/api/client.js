@@ -49,7 +49,7 @@ export function connectWs(onState) {
     } catch (_) { /* ignore non-JSON frames */ }
   }
   ws.onclose = () => {
-    if (!closed) setTimeout(() => connectWs(onState), 2000)
+    if (!closed) setTimeout(() => { if (!closed) connectWs(onState) }, 2000)
   }
   return () => {
     closed = true
