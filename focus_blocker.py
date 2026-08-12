@@ -91,6 +91,7 @@ _BACKUP_PATH = Path(str(HOSTS_PATH) + ".focus_blocker_backup")
 _CONFIG_DIR = Path(__file__).resolve().parent / "config"
 _CONFIG_FILE = _CONFIG_DIR / "sites.json"
 _STATE_FILE = _CONFIG_DIR / "session_state.json"
+_LOCK_FILE = _CONFIG_DIR / "block_lock.json"
 
 # Encouraging quotes for session completion
 _QUOTES = [
@@ -194,6 +195,33 @@ class _Config:
 # Singleton — cheap to re-read since the file is tiny
 def _get_sites() -> list[str]:
     return _Config().load()
+
+
+# ============================================================
+# Block lock — shared coordination with focus_watcher.py
+# ============================================================
+
+def _load_lock() -> dict[str, bool]:
+    """Return the shared block lock.  Repair/rebuild on corrupt or missing."""
+    default = {"watcher": False, "assistant": False}
+    try:
+        data = json.loads(_LOCK_FILE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return default
+    if not isinstance(data, dict):
+        return default
+    return {
+        "watcher": bool(data.get("watcher", False)),
+        "assistant": bool(data.get("assistant", False)),
+    }
+
+
+def _save_lock(lock: dict[str, bool]) -> None:
+    """Atomically write the lock file (temp file + os.replace)."""
+    _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = _LOCK_FILE.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(lock), encoding="utf-8")
+    os.replace(tmp, _LOCK_FILE)
 
 
 # ============================================================
