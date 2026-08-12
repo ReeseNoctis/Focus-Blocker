@@ -39,6 +39,11 @@ def _setup(monkeypatch, tmp_path, blocked=False):
     monkeypatch.setattr(fb, "_get_sites", lambda: ["example.com"])
     monkeypatch.setattr(fb, "backup_hosts", lambda: None)
     monkeypatch.setattr(fb, "flush_dns", lambda: None)
+    # Never touch the real /etc/hosts or its flags: fake the strip helpers too.
+    monkeypatch.setattr(fb, "_read_hosts", lambda: "127.0.0.1 localhost\n")
+    monkeypatch.setattr(fb, "_write_hosts", lambda content: None)
+    monkeypatch.setattr(fb, "_remove_immutable_flag", lambda: None)
+    monkeypatch.setattr(fb, "_restore_immutable_flag", lambda: None)
     calls = {"blocked": None}
 
     def fake_block(sites):
