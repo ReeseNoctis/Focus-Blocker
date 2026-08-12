@@ -34,13 +34,25 @@ export function stopSession(completed) {
 export function currentSession() {
   return request('/api/sessions/current')
 }
+let currentWs = null
+let closed = false
+
 export function connectWs(onState) {
+  closed = false
   const proto = location.protocol === 'https:' ? 'wss' : 'ws'
   const ws = new WebSocket(`${proto}://${location.host}/ws`)
+  currentWs = ws
   ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data)
-    if (msg.type === 'state') onState(msg.state)
+    try {
+      const msg = JSON.parse(e.data)
+      if (msg.type === 'state') onState(msg.state)
+    } catch (_) { /* ignore non-JSON frames */ }
   }
-  ws.onclose = () => setTimeout(() => connectWs(onState), 2000)
-  return () => ws.close()
+  ws.onclose = () => {
+    if (!closed) setTimeout(() => connectWs(onState), 2000)
+  }
+  return () => {
+    closed = true
+    if (currentWs) currentWs.close()
+  }
 }
