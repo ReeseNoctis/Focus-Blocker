@@ -32,7 +32,7 @@
 | 数据存储 | SQLite（`tasks` + `focus_sessions` 两张表） |
 | 计时权威位置 | 后端（避免浏览器标签页休眠导致计时漂移） |
 | 前后端通信 | REST + WebSocket（实时推送倒计时/状态） |
-| 屏蔽引擎 | 复用现有 `focus_blocker.py`，零重写，通过 `sudo -n` 调用 |
+| 屏蔽引擎 | 复用现有 `focus_blocker.py`（hosts 逻辑零改动），新增 `--acquire`/`--release` 协调命令，通过 `sudo -n` 调用 |
 
 ---
 
@@ -51,11 +51,16 @@
                                                         │ sudo -n (subprocess)
                                               ┌─────────▼──────────┐
                                               │ focus_blocker.py    │
-                                              │ 屏蔽引擎(现有,零重写) │
+                                              │ 屏蔽引擎 + 协调锁    │
+                                              └─────────▲──────────┘
+                                                        │ sudo -n
+                                              ┌─────────┴──────────┐
+                                              │ focus_watcher.py    │
+                                              │ 系统 Focus 联动守护   │
                                               └────────────────────┘
 ```
 
-**定位说明**：`focus_blocker.py` 及其安全逻辑（备份/恢复、signal 处理、immutable flag）保持原样，作为被后端调用的屏蔽引擎。现有 TUI 降级为手动/调试入口，Web 界面是日常唯一入口。
+**定位说明**：`focus_blocker.py` 及其安全逻辑（备份/恢复、signal 处理、immutable flag）保持原样，作为被后端调用的屏蔽引擎；同时新增 `--acquire`/`--release` 协调命令（见第 12 节）。现有 TUI 降级为手动/调试入口，Web 界面是日常唯一入口。`focus_watcher.py` 从直接调用 `--block-only`/`--unblock-only` 改为调用 `--acquire watcher`/`--release watcher`。
 
 ---
 
@@ -165,11 +170,12 @@ Focus-Blocker/
 │   │   ├── api/              # axios 封装 + WS 客户端
 │   │   └── main.js
 │   └── ...
-├── focus_blocker.py          # 现有屏蔽引擎（不改）
+├── focus_blocker.py          # 屏蔽引擎 + 协调锁（hosts 逻辑不改，新增 --acquire/--release）
 ├── focus_server.py           # 现有（后续迭代决定去留）
-├── focus_watcher.py          # 现有（保持不变）
+├── focus_watcher.py          # 改动：改调用 --acquire watcher / --release watcher
 └── config/
-    └── sites.json            # 现有
+    ├── sites.json            # 现有
+    └── block_lock.json       # 新增：共享锁
 ```
 
 ---
@@ -188,3 +194,48 @@ Focus-Blocker/
 - 后端单元测试：任务 CRUD、会话状态机、专注时长累计
 - 屏蔽引擎调用：mock `subprocess` 验证命令参数与失败回滚
 - 前端：聚焦核心交互（创建任务 → 启动 → 结束）的冒烟验证
+
+---
+
+## 12. 与系统 Focus 勿扰模式的协调机制（共享锁）
+
+### 问题
+
+存在两条独立的屏蔽触发路径，若不加协调会互相覆盖：
+
+- `focus_watcher.py` 检测系统 Focus 开关 → 触发屏蔽/解除
+- 学习助手启动/结束专注 → 触发屏蔽/解除
+
+典型冲突：学习助手启动专注并屏蔽网站，但系统 Focus 未开启，watcher 检测到「Focus 关 + hosts 有屏蔽条目」→ 误判为残留 → 解除学习助手的屏蔽。
+
+### 方案：共享锁（引用计数）
+
+新增 `config/block_lock.json`：
+
+```json
+{ "watcher": false, "assistant": false }
+```
+
+**核心规则**：网站处于屏蔽状态 ⟺ `watcher` 或 `assistant` 任一为 `true`。只有两个占用者都释放时才真正解除屏蔽。
+
+### 命令（集中在 `focus_blocker.py`）
+
+| 命令 | 动作 |
+|------|------|
+| `--acquire watcher` | `watcher=true`，若未屏蔽则屏蔽 |
+| `--release watcher` | `watcher=false`，若 assistant 仍占用则保持屏蔽，否则解除 |
+| `--acquire assistant` | `assistant=true`，若未屏蔽则屏蔽 |
+| `--release assistant` | `assistant=false`，若 watcher 仍占用则保持屏蔽，否则解除 |
+
+### 各组件职责
+
+| 组件 | 改动 |
+|------|------|
+| `focus_blocker.py` | 新增 `--acquire`/`--release` 命令 + 锁文件读写；`block_sites`/`restore_hosts` 等 hosts 操作逻辑零改动 |
+| `focus_watcher.py` | 原 `--block-only`/`--unblock-only` 调用改为 `--acquire watcher`/`--release watcher` |
+| 学习助手后端 | 启动专注调 `--acquire assistant`，结束调 `--release assistant` |
+
+### 锁文件一致性
+
+- 锁文件读写需原子（先读、改、写回）；若锁文件损坏或缺失，默认 `{watcher:false, assistant:false}` 并重建
+- 屏蔽/解除动作仍以 hosts 文件的 `# >>> FOCUS_BLOCKER_START` 标记段为最终事实来源，锁文件仅用于"是否该解除"的决策
