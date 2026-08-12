@@ -154,7 +154,7 @@ def _notify(title: str, message: str) -> None:
         pass
 
 
-def _run_blocker(arg: str) -> bool:
+def _run_blocker(*args: str) -> bool:
     """Run ``focus_blocker.py`` with elevated privileges via sudo.
 
     Uses ``sudo -n`` (non-interactive) — requires passwordless sudo
@@ -162,7 +162,7 @@ def _run_blocker(arg: str) -> bool:
     """
     try:
         r = subprocess.run(
-            ["sudo", "-n", sys.executable, str(BLOCKER_SCRIPT), arg],
+            ["sudo", "-n", sys.executable, str(BLOCKER_SCRIPT), *args],
             capture_output=True, text=True, timeout=30,
         )
         if r.returncode != 0:
@@ -174,11 +174,11 @@ def _run_blocker(arg: str) -> bool:
                     f'     Add:   {os.environ.get("USER", "YOUR_USERNAME")} ALL=(ALL) NOPASSWD: {sys.executable} {BLOCKER_SCRIPT} *'
                 )
             elif stderr:
-                _log(f"  blocker {arg} stderr: {stderr[:300]}")
+                _log(f"  blocker {' '.join(args)} stderr: {stderr[:300]}")
             return False
         return True
     except Exception as exc:
-        _log(f"  blocker {arg} exception: {exc}")
+        _log(f"  blocker {' '.join(args)} exception: {exc}")
         return False
 
 
@@ -220,11 +220,11 @@ def run_forever() -> None:
 
     if active and not should_be_blocked:
         _log("  → focus active but not blocked — blocking now")
-        _run_blocker("--block-only")
+        _run_blocker("--acquire", "watcher")
         _notify("🧘 Focus Mode: ON", f"Sites blocked for {name}" if name else "Sites blocked")
     elif not active and should_be_blocked:
         _log("  → focus inactive but still blocked — restoring now")
-        _run_blocker("--unblock-only")
+        _run_blocker("--release", "watcher")
         _notify("🌐 Focus Mode: OFF", "Sites unblocked")
 
     _save_state(active)
@@ -256,7 +256,7 @@ def run_forever() -> None:
         # Act on the transition
         if active and not was_active:
             _log(f"  🔒 Focus ON  ({name or 'unknown'}) → blocking")
-            ok = _run_blocker("--block-only")
+            ok = _run_blocker("--acquire", "watcher")
             if ok:
                 _notify("🧘 Focus Mode: ON",
                         f"Sites blocked for '{name}'" if name else "Sites blocked")
@@ -264,7 +264,7 @@ def run_forever() -> None:
 
         elif not active and was_active:
             _log(f"  🌐 Focus OFF → restoring")
-            ok = _run_blocker("--unblock-only")
+            ok = _run_blocker("--release", "watcher")
             if ok:
                 _notify("🌐 Focus Mode: OFF", "Sites unblocked — happy browsing!")
             _save_state(False)
