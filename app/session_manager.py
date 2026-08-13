@@ -2,36 +2,40 @@
 
 from __future__ import annotations
 
+import threading
 import time
 
 
 class SessionManager:
     def __init__(self) -> None:
         self._current: dict | None = None
+        self._lock = threading.Lock()
 
     def start(self, task_id: int | None, minutes: int) -> dict:
-        if self._current is not None:
-            raise RuntimeError("a focus session is already running")
-        total = max(1, minutes) * 60
-        self._current = {
-            "task_id": task_id,
-            "total_seconds": total,
-            "started_at": time.time(),
-        }
-        return dict(self._current)
+        with self._lock:
+            if self._current is not None:
+                raise RuntimeError("a focus session is already running")
+            total = max(1, minutes) * 60
+            self._current = {
+                "task_id": task_id,
+                "total_seconds": total,
+                "started_at": time.time(),
+            }
+            return dict(self._current)
 
     def stop(self, completed: bool = False) -> dict | None:
-        if self._current is None:
-            return None
-        s = self._current
-        elapsed = int(time.time() - s["started_at"])
-        self._current = None
-        return {
-            "task_id": s["task_id"],
-            "duration_seconds": elapsed,
-            "completed": completed,
-            "started_at": s["started_at"],
-        }
+        with self._lock:
+            if self._current is None:
+                return None
+            s = self._current
+            elapsed = int(time.time() - s["started_at"])
+            self._current = None
+            return {
+                "task_id": s["task_id"],
+                "duration_seconds": elapsed,
+                "completed": completed,
+                "started_at": s["started_at"],
+            }
 
     def current(self) -> dict | None:
         if self._current is None:

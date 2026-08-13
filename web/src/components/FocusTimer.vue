@@ -18,10 +18,33 @@ async function begin() {
   await startSession(props.task?.id ?? null, planned.value)
   emit('finished')  // prompt parent to refresh task list
 }
-async function stop() {
-  const resp = await stopSession(false)
+
+// Stop a session, treating "already ended" (watchdog won the race → 409) as a
+// successful finish. Returns true on success, false when the session was
+// already completed elsewhere. Always refreshes the task list via 'finished'.
+async function doStop(completed) {
+  let resp
+  try {
+    resp = await stopSession(completed)
+  } catch (e) {
+    if (/no active session|already running|409/.test(e.message || '')) {
+      // Session already ended server-side — still refresh the list.
+      emit('finished')
+      return false
+    }
+    throw e
+  }
   emit('finished')
   if (resp?.warning) window.alert(resp.warning)
+  return true
+}
+
+async function stop() {
+  const stopped = await doStop(false)
+  if (!stopped) {
+    // 409 path: no stop ran, so the local timer state is stale — clear it.
+    state.value = { active: false, remaining: 0, total_seconds: 0 }
+  }
 }
 
 onUnmounted(() => closeWs && closeWs())
@@ -33,9 +56,7 @@ let lastRemaining = null
 watch(() => state.value.remaining, async (r) => {
   if (state.value.active && r === 0 && lastRemaining !== 0) {
     lastRemaining = 0
-    const resp = await stopSession(true)
-    emit('finished')
-    if (resp?.warning) window.alert(resp.warning)
+    await doStop(true)
   } else if (r !== 0) {
     lastRemaining = r
   }

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
@@ -19,11 +20,18 @@ async def _expiry_watchdog():
     client-driven, but if the browser is closed a session would otherwise run
     forever.  Polls every second and completes elapsed sessions server-side."""
     while True:
-        await asyncio.sleep(1)
-        result = session_manager.expire_if_done()
-        if result is not None:
-            blocker.release("assistant")  # ignore result — unblock is best-effort
-            finalize_session(result)
+        try:
+            await asyncio.sleep(1)
+            result = session_manager.expire_if_done()
+            if result is not None:
+                # release runs a blocking sudo subprocess — keep it off the
+                # event loop so WS streaming / REST stay responsive.
+                await asyncio.to_thread(blocker.release, "assistant")
+                finalize_session(result)
+        except Exception as exc:
+            # A transient error (e.g. SQLite locked) must not kill the watchdog
+            # forever — log and keep polling.
+            print(f"expiry watchdog error: {exc}", file=sys.stderr)
 
 
 @app.on_event("startup")
