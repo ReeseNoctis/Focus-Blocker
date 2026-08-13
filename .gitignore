@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Runtime files
+config/server.pid
+config/watcher_state.json
+config/watcher.log
+config/shortcuts.log
+
+# Runtime database
+config/*.db
+
+# Certificate files (if any leftover from HTTPS redirect experiment)
+config/*.key
+config/*.crt
+config/*.csr
+config/*.srl
+config/openssl.cnf
+
+# Virtual environment
+.venv/
+
+.claude

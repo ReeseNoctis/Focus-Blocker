@@ -25,8 +25,14 @@ import time
 import signal
 import platform
 import ctypes
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+try:
+    import fcntl
+except ImportError:  # Windows has no fcntl
+    fcntl = None
 
 if TYPE_CHECKING:
     from rich.console import Console
@@ -91,6 +97,7 @@ _BACKUP_PATH = Path(str(HOSTS_PATH) + ".focus_blocker_backup")
 _CONFIG_DIR = Path(__file__).resolve().parent / "config"
 _CONFIG_FILE = _CONFIG_DIR / "sites.json"
 _STATE_FILE = _CONFIG_DIR / "session_state.json"
+_LOCK_FILE = _CONFIG_DIR / "block_lock.json"
 
 # Encouraging quotes for session completion
 _QUOTES = [
@@ -194,6 +201,110 @@ class _Config:
 # Singleton — cheap to re-read since the file is tiny
 def _get_sites() -> list[str]:
     return _Config().load()
+
+
+# ============================================================
+# Block lock — shared coordination with focus_watcher.py
+# ============================================================
+
+def _load_lock() -> dict[str, bool]:
+    """Return the shared block lock.  Repair/rebuild on corrupt or missing."""
+    default = {"watcher": False, "assistant": False}
+    try:
+        data = json.loads(_LOCK_FILE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return default
+    if not isinstance(data, dict):
+        return default
+    return {
+        "watcher": bool(data.get("watcher", False)),
+        "assistant": bool(data.get("assistant", False)),
+    }
+
+
+def _save_lock(lock: dict[str, bool]) -> None:
+    """Atomically write the lock file (temp file + os.replace)."""
+    _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = _LOCK_FILE.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(lock), encoding="utf-8")
+    os.replace(tmp, _LOCK_FILE)
+
+
+@contextmanager
+def _lock_guard():
+    """Serialize lock-file read-modify-write cycles across processes.
+
+    Holds an exclusive advisory lock (``fcntl.flock``) on a companion
+    lockfile so the watcher and the assistant can never read-modify-write
+    the shared lock concurrently.  Falls back to a no-op on platforms
+    without fcntl (Windows).
+    """
+    if fcntl is None:
+        yield
+        return
+    _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    fd = open(_LOCK_FILE.with_suffix(".lock"), "a+")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        fd.close()
+
+
+def acquire_lock(owner: str) -> None:
+    """Mark *owner* as holding the block; block sites if not already blocked."""
+    with _lock_guard():
+        lock = _load_lock()
+        if lock.get(owner):
+            return
+
+        if _has_block_entries():
+            lock[owner] = True
+            _save_lock(lock)
+            print(f"ℹ️  Sites already blocked ({owner} acquired).")
+            return
+
+        sites = _get_sites()
+        if not sites:
+            print("❌ Blocklist is empty.")
+            sys.exit(1)
+
+        backup_hosts()
+        block_sites(sites)
+        flush_dns()
+
+        # Only mark the lock after the block has actually succeeded, so a
+        # failed block never leaves a phantom hold behind.
+        lock[owner] = True
+        _save_lock(lock)
+        print(f"🔒 Sites blocked (acquired by {owner}).")
+
+
+def release_lock(owner: str) -> None:
+    """Release *owner*'s hold; restore only when no owner remains."""
+    with _lock_guard():
+        lock = _load_lock()
+        lock[owner] = False
+        _save_lock(lock)
+
+        if any(lock.values()):
+            remaining = [k for k, v in lock.items() if v]
+            print(f"ℹ️  Still held by {remaining} — keeping blocked.")
+            return
+
+        if not _has_block_entries():
+            return
+
+        if restore_hosts():
+            flush_dns()
+            print("🌐 All sites unblocked.")
+        else:
+            _remove_immutable_flag()
+            _strip_block_entries()
+            _restore_immutable_flag()
+            flush_dns()
+            print("🌐 Sites unblocked (recovered without backup).")
 
 
 # ============================================================
@@ -302,6 +413,25 @@ def _has_block_entries() -> bool:
         return _MARKER_START in _read_hosts()
     except FileNotFoundError:
         return False
+
+
+def _strip_block_entries() -> None:
+    """Remove our marker-bracketed block section from the hosts file."""
+    content = _read_hosts()
+    if _MARKER_START not in content:
+        return
+    lines: list[str] = []
+    skip = False
+    for line in content.splitlines(keepends=True):
+        if _MARKER_START in line:
+            skip = True
+            continue
+        if _MARKER_END in line:
+            skip = False
+            continue
+        if not skip:
+            lines.append(line)
+    _write_hosts("".join(lines))
 
 
 def _path_flags(path: Path) -> int:
@@ -902,6 +1032,8 @@ def _print_usage() -> None:
     print("  python focus_blocker.py list         Show blocked sites")
     print("  python focus_blocker.py --block-only   Silent block (no timer)")
     print("  python focus_blocker.py --unblock-only Silent restore (no timer)")
+    print("  python focus_blocker.py --acquire <watcher|assistant>   占住屏蔽锁")
+    print("  python focus_blocker.py --release <watcher|assistant>   释放屏蔽锁")
     print("  python focus_blocker.py --help       Show this message")
 
 
@@ -951,24 +1083,8 @@ def _silent_unblock() -> None:
 
     if not _BACKUP_PATH.exists():
         if _has_block_entries():
-            # No backup but entries exist — strip them anyway
-            sites = _get_sites()
-            block_sites(sites)  # strips old, adds fresh (also removes immutable flag)
-            # Now remove what we just added
-            content = _read_hosts()
-            if _MARKER_START in content:
-                lines: list[str] = []
-                skip = False
-                for line in content.splitlines(keepends=True):
-                    if _MARKER_START in line:
-                        skip = True
-                        continue
-                    if _MARKER_END in line:
-                        skip = False
-                        continue
-                    if not skip:
-                        lines.append(line)
-                _write_hosts("".join(lines))
+            _remove_immutable_flag()
+            _strip_block_entries()
             _restore_immutable_flag()
             flush_dns()
             msg = "🌐 Sites unblocked (recovered without backup)."
@@ -993,6 +1109,20 @@ def _silent_unblock() -> None:
         else:
             print("  🌐 All sites unblocked — happy browsing!")
             _notify("Focus Blocker", "All sites unblocked — happy browsing!")
+
+
+def _cmd_acquire(owner: str) -> None:
+    if not is_admin():
+        elevate(extra_args=["--acquire", owner])
+        return
+    acquire_lock(owner)
+
+
+def _cmd_release(owner: str) -> None:
+    if not is_admin():
+        elevate(extra_args=["--release", owner])
+        return
+    release_lock(owner)
 
 
 def _notify(title: str, message: str) -> None:
@@ -1104,6 +1234,15 @@ def main() -> None:
         _start_focus_flow()
     elif cmd == "--block-only":
         _silent_block()
+    elif cmd in ("--acquire", "--release"):
+        if len(sys.argv) < 3 or sys.argv[2] not in ("watcher", "assistant"):
+            print("Usage: focus_blocker.py --acquire|--release <watcher|assistant>")
+            sys.exit(1)
+        owner = sys.argv[2]
+        if cmd == "--acquire":
+            _cmd_acquire(owner)
+        else:
+            _cmd_release(owner)
     elif cmd == "--unblock-only":
         _silent_unblock()
     else:

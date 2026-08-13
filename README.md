@@ -33,6 +33,35 @@ cd Focus-Blocker
 pip install rich
 ```
 
+## 🧘 学习助手（Web 界面）
+
+Web 版学习助手：规划每日任务、一键启动专注、计时结束自动完成。
+
+### 启动后端
+
+```bash
+cd Focus-Blocker
+/opt/homebrew/bin/python3.12 -m venv .venv   # 首次
+./.venv/bin/pip install -r requirements.txt  # 首次
+./.venv/bin/python3.12 -m uvicorn app.main:app --port 8000
+```
+
+### 启动前端
+
+```bash
+cd web
+npm install   # 首次
+npm run dev
+```
+
+打开 http://localhost:5173 使用。
+
+### 与系统 Focus 勿扰的配合
+
+学习助手与系统 Focus 勿扰通过 `config/block_lock.json` 共享锁协调：
+- 两者任一开启，网站即被屏蔽；两者都关闭才解除。
+- 屏蔽引擎新增 `--acquire <watcher|assistant>` / `--release <watcher|assistant>` 命令，学习助手用 `assistant`，Focus 守护进程用 `watcher`。
+
 ## Quick Start
 
 ```bash
