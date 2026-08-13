@@ -68,9 +68,10 @@ def finalize_session(result: dict) -> dict:
         )
         if result["task_id"] is not None:
             conn.execute(
-                "UPDATE tasks SET focus_seconds = focus_seconds + ?, status = ? WHERE id = ?",
+                "UPDATE tasks SET focus_seconds = focus_seconds + ?, status = ?, completed_at = ? WHERE id = ?",
                 (result["duration_seconds"],
                  TASK_DONE if result["completed"] else TASK_IN_PROGRESS,
+                 now if result["completed"] else None,
                  result["task_id"]),
             )
     return {"session": result, "state": session_manager.state()}
