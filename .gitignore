@@ -10,6 +10,10 @@ config/server.pid
 config/watcher_state.json
 config/watcher.log
 config/shortcuts.log
+config/block_lock.json
+config/block_lock.lock
+config/server_pids.json
+config/session_state.json
 
 # Runtime database
 config/*.db
