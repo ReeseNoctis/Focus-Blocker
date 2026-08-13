@@ -12,13 +12,19 @@ function localDateStr() {
 }
 const today = localDateStr()
 const activeTask = ref(null)
+const listVersion = ref(0)
+
+function onFinished() {
+  activeTask.value = null
+  listVersion.value++  // refresh the task list so status/focus_seconds update
+}
 </script>
 
 <template>
   <main>
     <h1>🧘 沉浸式学习助手</h1>
-    <FocusTimer :task="activeTask" @finished="activeTask = null" />
-    <TaskList :date="today" @start="(t) => (activeTask = t)" />
+    <FocusTimer :task="activeTask" @finished="onFinished" />
+    <TaskList :date="today" :refresh-key="listVersion" @start="(t) => (activeTask = t)" />
   </main>
 </template>
 

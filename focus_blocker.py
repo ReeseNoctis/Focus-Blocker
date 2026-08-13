@@ -25,8 +25,14 @@ import time
 import signal
 import platform
 import ctypes
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+try:
+    import fcntl
+except ImportError:  # Windows has no fcntl
+    fcntl = None
 
 if TYPE_CHECKING:
     from rich.console import Console
@@ -224,52 +230,81 @@ def _save_lock(lock: dict[str, bool]) -> None:
     os.replace(tmp, _LOCK_FILE)
 
 
+@contextmanager
+def _lock_guard():
+    """Serialize lock-file read-modify-write cycles across processes.
+
+    Holds an exclusive advisory lock (``fcntl.flock``) on a companion
+    lockfile so the watcher and the assistant can never read-modify-write
+    the shared lock concurrently.  Falls back to a no-op on platforms
+    without fcntl (Windows).
+    """
+    if fcntl is None:
+        yield
+        return
+    _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    fd = open(_LOCK_FILE.with_suffix(".lock"), "a+")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        fd.close()
+
+
 def acquire_lock(owner: str) -> None:
     """Mark *owner* as holding the block; block sites if not already blocked."""
-    lock = _load_lock()
-    if lock.get(owner):
-        return
-    lock[owner] = True
-    _save_lock(lock)
+    with _lock_guard():
+        lock = _load_lock()
+        if lock.get(owner):
+            return
 
-    if _has_block_entries():
-        print(f"ℹ️  Sites already blocked ({owner} acquired).")
-        return
+        if _has_block_entries():
+            lock[owner] = True
+            _save_lock(lock)
+            print(f"ℹ️  Sites already blocked ({owner} acquired).")
+            return
 
-    sites = _get_sites()
-    if not sites:
-        print("❌ Blocklist is empty.")
-        sys.exit(1)
+        sites = _get_sites()
+        if not sites:
+            print("❌ Blocklist is empty.")
+            sys.exit(1)
 
-    backup_hosts()
-    block_sites(sites)
-    flush_dns()
-    print(f"🔒 Sites blocked (acquired by {owner}).")
+        backup_hosts()
+        block_sites(sites)
+        flush_dns()
+
+        # Only mark the lock after the block has actually succeeded, so a
+        # failed block never leaves a phantom hold behind.
+        lock[owner] = True
+        _save_lock(lock)
+        print(f"🔒 Sites blocked (acquired by {owner}).")
 
 
 def release_lock(owner: str) -> None:
     """Release *owner*'s hold; restore only when no owner remains."""
-    lock = _load_lock()
-    lock[owner] = False
-    _save_lock(lock)
+    with _lock_guard():
+        lock = _load_lock()
+        lock[owner] = False
+        _save_lock(lock)
 
-    if any(lock.values()):
-        remaining = [k for k, v in lock.items() if v]
-        print(f"ℹ️  Still held by {remaining} — keeping blocked.")
-        return
+        if any(lock.values()):
+            remaining = [k for k, v in lock.items() if v]
+            print(f"ℹ️  Still held by {remaining} — keeping blocked.")
+            return
 
-    if not _has_block_entries():
-        return
+        if not _has_block_entries():
+            return
 
-    if restore_hosts():
-        flush_dns()
-        print("🌐 All sites unblocked.")
-    else:
-        _remove_immutable_flag()
-        _strip_block_entries()
-        _restore_immutable_flag()
-        flush_dns()
-        print("🌐 Sites unblocked (recovered without backup).")
+        if restore_hosts():
+            flush_dns()
+            print("🌐 All sites unblocked.")
+        else:
+            _remove_immutable_flag()
+            _strip_block_entries()
+            _restore_immutable_flag()
+            flush_dns()
+            print("🌐 Sites unblocked (recovered without backup).")
 
 
 # ============================================================

@@ -19,8 +19,9 @@ async function begin() {
   emit('finished')  // prompt parent to refresh task list
 }
 async function stop() {
-  await stopSession(false)
+  const resp = await stopSession(false)
   emit('finished')
+  if (resp?.warning) window.alert(resp.warning)
 }
 
 onUnmounted(() => closeWs && closeWs())
@@ -32,8 +33,9 @@ let lastRemaining = null
 watch(() => state.value.remaining, async (r) => {
   if (state.value.active && r === 0 && lastRemaining !== 0) {
     lastRemaining = 0
-    await stopSession(true)
+    const resp = await stopSession(true)
     emit('finished')
+    if (resp?.warning) window.alert(resp.warning)
   } else if (r !== 0) {
     lastRemaining = r
   }

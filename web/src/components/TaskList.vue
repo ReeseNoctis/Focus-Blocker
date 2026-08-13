@@ -2,7 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { fetchTasks, createTask, updateTask, deleteTask } from '../api/client'
 
-const props = defineProps({ date: String })
+const props = defineProps({ date: String, refreshKey: Number })
 const emit = defineEmits(['start'])
 
 const tasks = ref([])
@@ -29,6 +29,7 @@ async function remove(id) {
 }
 onMounted(load)
 watch(() => props.date, load)
+watch(() => props.refreshKey, load)
 </script>
 
 <template>

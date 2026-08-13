@@ -218,11 +218,11 @@ def run_forever() -> None:
     # or vice versa, align the system
     should_be_blocked = _has_block_entries()
 
-    if active and not should_be_blocked:
-        _log("  → focus active but not blocked — blocking now")
+    if active:
+        _log("  → focus active — ensuring watcher hold")
         _run_blocker("--acquire", "watcher")
         _notify("🧘 Focus Mode: ON", f"Sites blocked for {name}" if name else "Sites blocked")
-    elif not active and should_be_blocked:
+    elif should_be_blocked:
         _log("  → focus inactive but still blocked — restoring now")
         _run_blocker("--release", "watcher")
         _notify("🌐 Focus Mode: OFF", "Sites unblocked")

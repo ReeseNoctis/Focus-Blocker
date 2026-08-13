@@ -47,6 +47,16 @@ class SessionManager:
             "remaining": int(remaining),
         }
 
+    def expire_if_done(self):
+        """If a session has elapsed past its total, stop it as completed and
+        return the result dict; otherwise return None."""
+        if self._current is None:
+            return None
+        s = self._current
+        if int(time.time() - s["started_at"]) >= s["total_seconds"]:
+            return self.stop(completed=True)
+        return None
+
     def state(self) -> dict:
         cur = self.current()
         if cur is None:

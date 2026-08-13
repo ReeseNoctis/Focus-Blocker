@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import datetime
 from typing import Optional
 
@@ -43,15 +44,20 @@ def start_session(body: StartBody):
     return session_manager.state()
 
 
-@router.post("/stop")
-def stop_session(body: StopBody = StopBody()):
-    result = session_manager.stop(completed=body.completed)
-    if result is None:
-        raise HTTPException(409, "no active session")
-
-    blocker.release("assistant")
-
+def finalize_session(result: dict) -> dict:
+    """Persist a finished session and update its task, then return the
+    response payload.  Shared by the manual ``/stop`` handler and the
+    backend expiry watchdog."""
     with get_conn() as conn:
+        # The task may have been deleted mid-session — record as free focus
+        # instead of tripping the FK constraint on INSERT.
+        if result["task_id"] is not None:
+            exists = conn.execute(
+                "SELECT 1 FROM tasks WHERE id = ?", (result["task_id"],)
+            ).fetchone()
+            if not exists:
+                result["task_id"] = None
+
         start_iso = datetime.fromtimestamp(result["started_at"]).isoformat(timespec="seconds")
         now = datetime.now().isoformat(timespec="seconds")
         conn.execute(
@@ -68,6 +74,24 @@ def stop_session(body: StopBody = StopBody()):
                  result["task_id"]),
             )
     return {"session": result, "state": session_manager.state()}
+
+
+@router.post("/stop")
+def stop_session(body: StopBody = StopBody()):
+    result = session_manager.stop(completed=body.completed)
+    if result is None:
+        raise HTTPException(409, "no active session")
+
+    ok, err = blocker.release("assistant")
+
+    resp = finalize_session(result)
+    if not ok:
+        warning = f"failed to unblock sites: {err}"
+        print(warning, file=sys.stderr)
+        resp["warning"] = warning
+    else:
+        resp["warning"] = None
+    return resp
 
 
 @router.get("/current")
