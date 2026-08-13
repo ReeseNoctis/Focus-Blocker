@@ -81,7 +81,7 @@ web/src/components/AiPlanner.vue    # 输入框 + 预览面板
 ### `app/ai_client.py` 职责
 
 - `plan_tasks(text: str) -> list[dict]`：读取 key、构造 prompt、请求 DeepSeek、解析返回 JSON，返回 `[{"title": str, "planned_minutes": int}, ...]`。
-- prompt 要求 AI 输出**纯 JSON 数组**（不带 markdown 代码块），每个元素含 `title`（任务名）和 `planned_minutes`（建议专注分钟数，正整数，默认 25）。
+- prompt 要求 AI 输出**纯 JSON 数组**（不带 markdown 代码块），每个元素含 `title`（任务名）和 `planned_minutes`（建议专注分钟数，正整数，默认 60）。
 - 容错解析：AI 返回若包在 ```` ```json ... ``` ```` 代码块里，先剥离代码块再 `json.loads`。
 
 ### `app/routers/ai.py`
