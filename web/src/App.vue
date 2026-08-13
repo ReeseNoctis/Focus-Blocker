@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import TaskList from './components/TaskList.vue'
+import FocusTimer from './components/FocusTimer.vue'
 
 function localDateStr() {
   const d = new Date()
@@ -16,6 +17,7 @@ const activeTask = ref(null)
 <template>
   <main>
     <h1>🧘 沉浸式学习助手</h1>
+    <FocusTimer :task="activeTask" @finished="activeTask = null" />
     <TaskList :date="today" @start="(t) => (activeTask = t)" />
   </main>
 </template>
