@@ -6,8 +6,16 @@ const props = defineProps({ task: { type: Object, default: null } })
 const emit = defineEmits(['finished'])
 
 const state = ref({ active: false, remaining: 0, total_seconds: 0 })
-const planned = ref(25)
+const planned = ref(60)
 let closeWs = null
+
+// When the selected task changes, prefill the focus duration with that
+// task's planned_minutes so "▶ 专注" uses the right time (not a stale default).
+watch(() => props.task, (t) => {
+  if (t && t.planned_minutes > 0) {
+    planned.value = t.planned_minutes
+  }
+})
 
 function fmt(s) {
   const m = Math.floor(s / 60), sec = s % 60
