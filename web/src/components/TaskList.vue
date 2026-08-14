@@ -54,25 +54,34 @@ watch(() => props.refreshKey, load)
 </template>
 
 <style scoped>
-.task-list { max-width: 640px; margin: 0 auto; padding: 0 0 24px; }
-.add-form { display: flex; gap: 8px; margin-bottom: 16px; }
-.add-form input[type=text] { flex: 1; }
+.task-list {
+  margin: 0;
+  padding: 22px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+.add-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.add-form input:first-child { flex: 1; min-width: 160px; }
 .add-form .mins { width: 64px; }
-ul { list-style: none; padding: 0; }
+ul { list-style: none; padding: 0; margin: 0; }
 li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px 12px;
   padding: 14px 16px;
-  background: var(--card);
+  background: rgba(255, 252, 245, 0.7);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   margin-bottom: 10px;
-  box-shadow: var(--shadow);
 }
+li:last-child { margin-bottom: 0; }
 li.done .title { text-decoration: line-through; color: var(--text-dim); }
-.title { flex: 1; font-weight: 500; }
+.title { flex: 1; font-weight: 500; min-width: 120px; }
 .meta { color: var(--text-dim); font-size: 13px; }
-.focus-btn { background: var(--primary); color: #fff; }
-.del { background: transparent; color: var(--text-dim); font-size: 14px; }
+.focus-btn { color: #fff; }
+.del { background: transparent; color: var(--text-dim); font-size: 14px; box-shadow: none; }
 </style>

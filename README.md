@@ -33,28 +33,32 @@ cd Focus-Blocker
 pip install rich
 ```
 
-## 🧘 学习助手（Web 界面）
+## 学习助手（Web 界面）
 
-Web 版学习助手：规划每日任务、一键启动专注、计时结束自动完成。
+古风二次元风格的学习页：规划每日任务、一键启动专注、计时结束自动完成。白发红眸的电子宠物 **绛雪** 会盯着你的专注状态说话、换动作（等待、指向、挥手、生气、开心），点她也会互动。
 
-### 启动后端
+### 一键启动
 
 ```bash
-cd Focus-Blocker
-/opt/homebrew/bin/python3.12 -m venv .venv   # 首次
-./.venv/bin/pip install -r requirements.txt  # 首次
+./start.sh          # 启动前后端并打开浏览器
+./start.sh stop     # 停止
+```
+
+界面：http://localhost:5173
+
+首次需要先建好 Python 虚拟环境并安装依赖：
+
+```bash
+/opt/homebrew/bin/python3.12 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+```
+
+前端依赖会在 `./start.sh` 时自动 `npm install`。也可手动分开启动：
+
+```bash
 ./.venv/bin/python3.12 -m uvicorn app.main:app --port 8000
+cd web && npm install && npm run dev
 ```
-
-### 启动前端
-
-```bash
-cd web
-npm install   # 首次
-npm run dev
-```
-
-打开 http://localhost:5173 使用。
 
 ### 与系统 Focus 勿扰的配合
 
@@ -62,7 +66,7 @@ npm run dev
 - 两者任一开启，网站即被屏蔽；两者都关闭才解除。
 - 屏蔽引擎新增 `--acquire <watcher|assistant>` / `--release <watcher|assistant>` 命令，学习助手用 `assistant`，Focus 守护进程用 `watcher`。
 
-### 🤖 AI 智能规划
+### AI 智能规划
 
 粘贴其他 AI 生成的行程文本，自动拆解成任务清单。
 
@@ -71,8 +75,8 @@ npm run dev
    cp config/ai.json.example config/ai.json
    # 编辑 config/ai.json，把 sk-... 换成真实 key
    ```
-2. 打开学习助手，在「AI 智能规划」输入框粘贴行程，点「✨ 智能规划」。
-3. 预览并微调任务（可改标题/时长/删除），点「✅ 确认创建」。
+2. 打开学习助手，在「AI 智能规划」输入框粘贴行程，点「智能规划」。
+3. 预览并微调任务（可改标题/时长/删除），点「确认创建」。
 
 > `config/ai.json` 已被 git 忽略，不会提交你的 key。
 

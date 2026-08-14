@@ -3,7 +3,7 @@ import { ref, watch, onUnmounted } from 'vue'
 import { startSession, stopSession, pauseSession, resumeSession, currentSession, connectWs } from '../api/client'
 
 const props = defineProps({ task: { type: Object, default: null } })
-const emit = defineEmits(['finished'])
+const emit = defineEmits(['finished', 'session'])
 
 const state = ref({ active: false, paused: false, remaining: 0, total_seconds: 0 })
 const planned = ref(60)
@@ -66,6 +66,7 @@ async function stop() {
 onUnmounted(() => closeWs && closeWs())
 closeWs = connectWs((s) => { state.value = s })
 currentSession().then((s) => { state.value = s })
+watch(state, (s) => emit('session', s), { deep: true, immediate: true })
 
 // auto-complete: when remaining hits 0, stop as completed (only while actively
 // counting — a paused session must never auto-complete).
@@ -82,7 +83,6 @@ watch(() => state.value.remaining, async (r) => {
 
 <template>
   <section class="timer">
-    <img class="avatar" src="../assets/avatar-girl.svg" alt="吉祥物" />
     <div v-if="state.active" class="counting">
       <div class="clock">{{ fmt(state.remaining) }}</div>
       <div class="pause-label" v-if="state.paused">已暂停</div>
@@ -94,7 +94,10 @@ watch(() => state.value.remaining, async (r) => {
     </div>
     <div v-else class="idle">
       <div class="task-name">{{ props.task ? props.task.title : '自由专注' }}</div>
-      <input v-model.number="planned" type="number" min="1" />
+      <div class="idle-row">
+        <input v-model.number="planned" type="number" min="1" />
+        <span class="mins-label">分钟</span>
+      </div>
       <button @click="begin">开始专注</button>
     </div>
   </section>
@@ -102,8 +105,7 @@ watch(() => state.value.remaining, async (r) => {
 
 <style scoped>
 .timer {
-  max-width: 640px;
-  margin: 24px auto;
+  margin: 0 0 20px;
   padding: 28px 24px;
   background: var(--card);
   border: 1px solid var(--border);
@@ -111,29 +113,23 @@ watch(() => state.value.remaining, async (r) => {
   box-shadow: var(--shadow);
   text-align: center;
   position: relative;
-}
-.avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: block;
-  margin: 0 auto 8px;
-  border: 2px solid var(--border);
+  backdrop-filter: blur(10px);
 }
 .clock {
-  font-size: 64px;
-  font-weight: 700;
+  font-family: var(--display);
+  font-size: 68px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   margin: 8px 0;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  color: var(--ink);
+  letter-spacing: 0.1em;
+  text-shadow: 0 2px 0 rgba(255, 248, 232, 0.7);
 }
-.pause-label { color: var(--primary-deep); margin-bottom: 10px; font-size: 14px; }
-.task-name { color: var(--text); margin-bottom: 12px; font-size: 18px; }
+.pause-label { color: var(--red); margin-bottom: 10px; font-size: 18px; font-family: var(--display); }
+.task-name { color: var(--text); margin-bottom: 12px; font-size: 24px; font-family: var(--display); letter-spacing: 0.12em; }
 .controls { display: flex; justify-content: center; gap: 10px; }
 .stop { color: var(--text-dim); }
-input { width: 90px; text-align: center; margin: 0 8px 12px; }
+.idle-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; }
+.mins-label { color: var(--text-dim); font-size: 14px; }
+input { width: 90px; text-align: center; }
 </style>

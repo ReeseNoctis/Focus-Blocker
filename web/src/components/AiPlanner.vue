@@ -91,13 +91,13 @@ async function confirm() {
 
 <style scoped>
 .ai-planner {
-  max-width: 640px;
-  margin: 0 auto 24px;
+  margin: 0 0 20px;
   padding: 22px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
 }
 .hint { color: var(--text-dim); font-size: 13px; margin-top: 0; }
 textarea { width: 100%; resize: vertical; }

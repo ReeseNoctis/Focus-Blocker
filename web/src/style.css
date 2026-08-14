@@ -1,21 +1,24 @@
 :root {
-  --bg: #FAF7F2;
-  --card: #FFFFFF;
-  --border: #F0E6E8;
-  --text: #4A4458;
-  --text-dim: #9A92A8;
-  --primary: #F5A0B0;
-  --primary-deep: #E8899A;
-  --secondary: #B8A7E0;
-  --red: #C8474F;
-  --shadow: rgba(184, 167, 224, 0.18) 0 8px 24px -6px;
+  --bg: #e9d3b8;
+  --card: rgba(255, 248, 236, 0.88);
+  --border: rgba(156, 92, 64, 0.32);
+  --text: #4a2e28;
+  --text-dim: #8a6a5a;
+  --primary: #c4474a;
+  --primary-deep: #9e2d32;
+  --secondary: #c9a36a;
+  --red: #b13238;
+  --gold: #e8c989;
+  --ink: #6e1c24;
+  --shadow: 0 10px 28px -12px rgba(90, 40, 28, 0.35);
 
-  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --display: "Zhi Mang Xing", "Xingkai SC", "STXingkai", cursive;
+  --title: "Ma Shan Zheng", "Xingkai SC", "STXingkai", cursive;
+  --body: "Ma Shan Zheng", "Xingkai SC", "Kaiti SC", "KaiTi", cursive;
 
   color: var(--text);
   background: var(--bg);
-  font: 16px/1.6 var(--sans);
+  font: 17px/1.75 var(--body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -24,47 +27,111 @@
 
 body {
   margin: 0;
-  background-color: var(--bg);
-  background-image: url('./assets/bg-petals.svg');
-  background-repeat: repeat;
-  background-size: 1200px 800px;
+  min-height: 100vh;
   color: var(--text);
-  font-family: var(--sans);
+  font-family: var(--body);
+  background: #c9a07a;
 }
 
-h1, h2 { color: var(--text); font-weight: 600; }
-h1 { font-size: 30px; letter-spacing: -0.5px; margin: 16px 0 4px; }
-h2 { font-size: 20px; margin: 0 0 12px; }
+h1, h2 {
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 400;
+}
+h1 { font-size: 48px; margin: 0; letter-spacing: 0.16em; }
+h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: 0.12em; }
 
 button {
   cursor: pointer;
-  border: none;
-  border-radius: 10px;
-  padding: 9px 18px;
-  font-size: 15px;
-  font-family: inherit;
-  background: var(--primary);
-  color: #fff;
-  transition: background 0.15s ease, transform 0.05s ease;
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  color: #fff4e4;
+  text-shadow: 0 1px 0 rgba(80, 16, 20, 0.28);
+  border: 1px solid #e4c58a;
+  border-radius: 999px;
+  padding: 8px 22px 10px;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 236, 210, 0.35), transparent 55%),
+    linear-gradient(180deg, #c85c56 0%, #a83c40 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 220, 0.35),
+    0 1px 2px rgba(90, 40, 28, 0.18);
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }
-button:hover { background: var(--primary-deep); }
-button:active { transform: translateY(1px); }
+button:hover {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 244, 220, 0.42), transparent 55%),
+    linear-gradient(180deg, #d46862 0%, #b14448 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 220, 0.45),
+    0 0 0 1px rgba(232, 201, 137, 0.45),
+    0 6px 16px rgba(168, 60, 64, 0.28);
+}
+button:active {
+  transform: scale(0.97);
+  background: linear-gradient(180deg, #a83c40 0%, #8e2e32 100%);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 
 button.secondary {
-  background: transparent;
-  color: var(--text-dim);
-  border: 1px solid var(--border);
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255, 248, 232, 0.7);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 55%),
+    linear-gradient(180deg, #fff6e8 0%, #edd6b4 100%);
+  border: 1px solid #d4b07a;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 1px 2px rgba(120, 72, 40, 0.12);
 }
-button.secondary:hover { background: var(--border); }
+button.secondary:hover {
+  background: linear-gradient(180deg, #fffaf0 0%, #f0dcc0 100%);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 0 0 1px rgba(201, 163, 106, 0.45),
+    0 6px 14px rgba(120, 72, 40, 0.14);
+}
+button.secondary:active {
+  background: linear-gradient(180deg, #e8d0b0 0%, #dcc09a 100%);
+}
+
+button.del {
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--text-dim);
+  text-shadow: none;
+  letter-spacing: 0.1em;
+  font-size: 16px;
+  padding: 6px 10px;
+}
+button.del:hover {
+  color: var(--red);
+  background: rgba(177, 50, 56, 0.08);
+  box-shadow: none;
+}
+button.del:active {
+  transform: none;
+  box-shadow: none;
+}
 
 input, textarea {
-  font-family: inherit;
-  font-size: 15px;
+  font-family: var(--title);
+  font-size: 16px;
   color: var(--text);
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: rgba(255, 252, 245, 0.9);
+  border: 1px solid rgba(156, 92, 64, 0.28);
+  border-radius: 10px;
   padding: 9px 12px;
   outline: none;
 }
-input:focus, textarea:focus { border-color: var(--primary); }
+input:focus, textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(196, 71, 74, 0.16);
+}
