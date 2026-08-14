@@ -1,230 +1,201 @@
-# 🧘 Focus Blocker
+# Focus Blocker
 
-> Block distracting websites at the system level — modify `/etc/hosts` so you can actually get work done.
+**English** | [中文](README.zh-CN.md)
 
-A cross-platform Python CLI tool that blocks entertainment and social media sites during timed focus sessions. When the timer ends (or you press Ctrl+C), the hosts file is restored automatically. On macOS 26 Tahoe and later, also handles the system immutable flag (`schg`).
+A local study assistant that **blocks distracting websites at the system level** while you focus. The web app plans tasks, runs a timer, and is watched by **Jiang Xue** (绛雪), a Q-version companion. When a session starts, `/etc/hosts` is rewritten so blocked sites fail in every browser and app — not just one extension.
+
+```
+Focus ON  →  hosts file rewritten  →  sites resolve to 127.0.0.1  →  blocked
+Focus OFF →  hosts restored        →  sites work again
+```
 
 ---
 
-## How It Works
+## What you can do
 
+| Feature | What it means |
+|---|---|
+| **Study web app** | Daily tasks, focus timer, pause / resume / stop |
+| **Jiang Xue** | Anime companion who reacts to idle, focusing, paused, and done |
+| **AI planner** | Paste a study plan; it splits into editable tasks (DeepSeek key optional) |
+| **System block** | Edits `/etc/hosts` (IPv4 + IPv6). Works outside the browser |
+| **Shared lock** | Web sessions and macOS Focus Mode can share one block; sites stay blocked until **both** are off |
+| **Safe restore** | Backup, signal handlers, and `finally` so a crash does not leave hosts broken |
+| **macOS 26** | Handles the `schg` immutable flag on `/etc/hosts` |
+| **CLI + TUI** | Optional terminal timer and site manager (`focus_blocker.py`) |
+
+Primary target is **macOS**. The CLI also runs on Linux and Windows.
+
+---
+
+## Deploy the study assistant (macOS)
+
+You should only need **one install command** and **one start command**. Copy each block as a whole.
+
+### 1. Install Python 3.12 and Node.js (once)
+
+If you do not have [Homebrew](https://brew.sh), install it from their site first. Then paste:
+
+```bash
+brew install python@3.12 node
 ```
-Focus ON  →  hosts file modified  →  sites resolve to 127.0.0.1  →  blocked
-Focus OFF →  hosts restored       →  sites accessible again
-```
 
-## Features
+### 2. Get the project (once)
 
-- **System-level blocking** — modifies `/etc/hosts`, works in every browser and app
-- **Auto-elevation** — uses `sudo` (macOS/Linux) or UAC (Windows) to get root
-- **Rich TUI** — color-coded countdown timer, progress bar, interactive site manager
-- **macOS Focus Mode integration** — auto-block when system Focus Mode turns on (via Shortcuts Automation)
-- **Status server** — local timer page at `http://127.0.0.1:18999` during focus sessions
-- **Safe-by-default** — automatic backup/restore, signal handlers, `finally` blocks
-- **Persistent config** — blocklist stored in `config/sites.json`, edit it directly or via TUI
-- **DNS cache flush** — flushes the OS DNS cache for immediate effect
-- **Cross-platform** — macOS, Linux, Windows
+GitHub → green **Code** → **Download ZIP**, unzip, then open Terminal in that folder.
 
-## Installation
+Or paste:
 
 ```bash
 git clone https://github.com/ReeseNoctis/Focus-Blocker.git
 cd Focus-Blocker
-pip install rich
 ```
 
-## 学习助手（Web 界面）
-
-古风二次元风格的学习页：规划每日任务、一键启动专注、计时结束自动完成。白发红眸的电子宠物 **绛雪** 会盯着你的专注状态说话、换动作（等待、指向、挥手、生气、开心），点她也会互动。
-
-### 一键启动
+### 3. Start
 
 ```bash
-./start.sh          # 启动前后端并打开浏览器
-./start.sh stop     # 停止
+chmod +x start.sh
+./start.sh
 ```
 
-界面：http://localhost:5173
+The first run creates `.venv`, installs Python and frontend packages, copies `config/ai.json` if missing, starts the API and UI, then opens the app.
 
-首次需要先建好 Python 虚拟环境并安装依赖：
+| | |
+|---|---|
+| App | [http://localhost:5173](http://localhost:5173) |
+| API | [http://127.0.0.1:8000](http://127.0.0.1:8000) |
+| Stop | `./start.sh stop` |
+
+`./start.sh stop` also **releases the site block**, so killing the app cannot leave websites stuck.
+
+Starting a focus session will ask for **sudo** (or Touch ID). That is required to edit `/etc/hosts`.
+
+---
+
+## Optional: AI planner
+
+1. Run `./start.sh` once (it creates `config/ai.json`).
+2. Open `config/ai.json` and replace the placeholder with a [DeepSeek](https://platform.deepseek.com/) API key.
+3. In the app, paste a plan into **AI planner** → **Plan** → edit → **Create**.
+
+`config/ai.json` is gitignored. Never commit a real key.
+
+Without a key, everything else still works; only AI planning is disabled.
+
+---
+
+## Optional: skip the sudo password
+
+Only needed if you do not want a password prompt on every focus start.
+
+1. Paste this; it prints **one line** to copy:
 
 ```bash
-/opt/homebrew/bin/python3.12 -m venv .venv
-./.venv/bin/pip install -r requirements.txt
+./start.sh visudo-hint
 ```
 
-前端依赖会在 `./start.sh` 时自动 `npm install`。也可手动分开启动：
-
-```bash
-./.venv/bin/python3.12 -m uvicorn app.main:app --port 8000
-cd web && npm install && npm run dev
-```
-
-### 与系统 Focus 勿扰的配合
-
-学习助手与系统 Focus 勿扰通过 `config/block_lock.json` 共享锁协调：
-- 两者任一开启，网站即被屏蔽；两者都关闭才解除。
-- 屏蔽引擎新增 `--acquire <watcher|assistant>` / `--release <watcher|assistant>` 命令，学习助手用 `assistant`，Focus 守护进程用 `watcher`。
-
-### AI 智能规划
-
-粘贴其他 AI 生成的行程文本，自动拆解成任务清单。
-
-1. 复制 `config/ai.json.example` 为 `config/ai.json`，填入你的 DeepSeek API Key：
-   ```bash
-   cp config/ai.json.example config/ai.json
-   # 编辑 config/ai.json，把 sk-... 换成真实 key
-   ```
-2. 打开学习助手，在「AI 智能规划」输入框粘贴行程，点「智能规划」。
-3. 预览并微调任务（可改标题/时长/删除），点「确认创建」。
-
-> `config/ai.json` 已被 git 忽略，不会提交你的 key。
-
-## Quick Start
-
-```bash
-# See what's on the blocklist
-python focus_blocker.py list
-
-# Customize the list via TUI manager
-python focus_blocker.py manage
-
-# Start a focus session
-python focus_blocker.py
-```
-
-## Usage
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `python focus_blocker.py` | Start a focus session with countdown timer |
-| `python focus_blocker.py manage` | Interactive TUI site manager |
-| `python focus_blocker.py list` | Show blocked sites |
-| `python focus_blocker.py config` | Open config file in editor |
-| `python focus_blocker.py --help` | Show usage |
-
-### Headless / Automation
-
-```bash
-python focus_blocker.py --block-only    # Block sites, no timer, exit
-python focus_blocker.py --unblock-only  # Restore hosts, exit
-```
-
-These are designed for Shortcuts, cron, or LaunchAgent integration.
-
-## macOS Focus Mode Integration (recommended for macOS 26+)
-
-Automatically block distracting sites when you turn on macOS Focus Mode.
-
-### Step 1: Configure passwordless sudo
+2. Paste this to open the sudoers editor:
 
 ```bash
 sudo visudo
 ```
 
-Add at the bottom:
-```
-YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/python3 /path/to/Focus-Blocker/focus_blocker.py *
-```
+3. Put the printed line at the **bottom**, save, quit.
 
-### Step 2: Create Shortcuts Automations
+After that, focus start/stop can run with `sudo -n` (no password).
 
-Open **Shortcuts** → **Automation** tab → **+** → **Create Personal Automation**:
+---
 
-| Trigger | Action (Run Shell Script) |
-|---------|--------------------------|
-| Focus **Turns On** | `/usr/bin/sudo -n /usr/bin/python3 /path/to/Focus-Blocker/focus_blocker.py --block-only` |
-| Focus **Turns Off** | `/usr/bin/sudo -n /usr/bin/python3 /path/to/Focus-Blocker/focus_blocker.py --unblock-only` |
+## How to use the app
 
-Repeat for each Focus Mode you use.
+1. Open [http://localhost:5173](http://localhost:5173) (or let `./start.sh` open it).
+2. Add tasks under **Today**, or paste a plan into **AI planner**.
+3. Click **Focus** on a task (or start a free session on the timer).
+4. Distracting sites on the blocklist go down until you stop or the timer ends.
+5. Jiang Xue watches the session: she nags if you idle, points while you focus, and reacts if you pause.
 
-### Focus Watcher Daemon (alternative)
+Edit the blocklist in `config/sites.json` (or with the CLI manager below). Hosts matching is **exact**: include both `example.com` and `www.example.com`.
 
-The `focus_watcher.py` runs as a background LaunchAgent, polls Focus Mode status, and triggers blocking/unblocking.
+---
+
+## CLI (optional)
+
+Same blocker, terminal UI. After `./start.sh` has created `.venv`:
 
 ```bash
-python focus_watcher.py           # Test in foreground
-python focus_watcher.py --install  # Install as LaunchAgent
-python focus_watcher.py --uninstall # Remove
+./.venv/bin/python3 focus_blocker.py          # timed session
+./.venv/bin/python3 focus_blocker.py list     # show sites
+./.venv/bin/python3 focus_blocker.py manage   # add / remove sites
+./.venv/bin/python3 focus_blocker.py config   # open config
 ```
 
-## Configuration
+Headless (Shortcuts, cron, LaunchAgent):
 
-The blocklist is at `config/sites.json` in the project folder:
-
-```json
-{
-  "sites": [
-    "www.bilibili.com",
-    "bilibili.com",
-    "www.youtube.com",
-    "youtube.com"
-  ]
-}
+```bash
+./.venv/bin/python3 focus_blocker.py --block-only
+./.venv/bin/python3 focus_blocker.py --unblock-only
 ```
 
-Edit it directly, or use `python focus_blocker.py manage` for the interactive TUI, or `python focus_blocker.py config` to open it in your editor.
+---
 
-### Important: subdomains matter
+## macOS Focus Mode (optional)
 
-DNS blocking via `hosts` is **exact-match only**. You usually need both the apex domain and the `www` subdomain:
+Block the same sites when a system Focus turns on.
 
-```json
-{ "sites": ["bilibili.com", "www.bilibili.com"] }
+**A. Shortcuts automations** (simple)
+
+Shortcuts → **Automation** → **+** → Personal Automation:
+
+| When | Run Shell Script |
+|---|---|
+| Focus **Turns On** | `/usr/bin/sudo -n /usr/bin/python3 /ABS/PATH/Focus-Blocker/focus_blocker.py --block-only` |
+| Focus **Turns Off** | `/usr/bin/sudo -n /usr/bin/python3 /ABS/PATH/Focus-Blocker/focus_blocker.py --unblock-only` |
+
+Replace `/ABS/PATH` with this folder. Repeat per Focus you use. Prefer the interpreter path from `./start.sh visudo-hint` if you use the venv.
+
+**B. Watcher daemon**
+
+```bash
+./.venv/bin/python3 focus_watcher.py            # test in the foreground
+./.venv/bin/python3 focus_watcher.py --install  # LaunchAgent
+./.venv/bin/python3 focus_watcher.py --uninstall
 ```
 
-## Focus Timer Page
+The web app uses lock owner `assistant`. The watcher uses `watcher`. Either one on → sites blocked; both off → sites restored.
 
-During a focus session, a local HTTP server runs automatically. Bookmark:
+---
 
-```
-http://127.0.0.1:18999
-```
+## Safety
 
-Shows remaining time, blocked sites, and motivational messages. Auto-updating countdown.
+- Backup: `/etc/hosts.focus_blocker_backup`
+- Restore on Ctrl+C, signals, and `finally`
+- Only lines between `# >>> FOCUS_BLOCKER_START` and `# <<< FOCUS_BLOCKER_END` are touched
+- Writes are idempotent (no duplicate rows)
+- IPv4 and IPv6
 
-## Safety Mechanisms
-
-1. **Backup before modification** — hosts file copied to `/etc/hosts.focus_blocker_backup`
-2. **Guaranteed restore** — `finally` block ensures restore even on crash
-3. **Signal handlers** — SIGINT/SIGTERM trigger clean restore
-4. **Marker-line isolation** — only touches lines between `# >>> FOCUS_BLOCKER_START` and `# <<< FOCUS_BLOCKER_END`
-5. **Idempotent writes** — never duplicates entries
-6. **Stale backup detection** — interactive prompt if backup exists
-7. **Immutable flag handling** — macOS 26's `schg` flag on `/etc/hosts` is handled automatically
-8. **IPv4 + IPv6** — all sites blocked on both protocols
-
-### Worst-case recovery
+If hosts is left dirty after a crash:
 
 ```bash
 sudo cp /etc/hosts.focus_blocker_backup /etc/hosts
 ```
 
-## Platform Notes
+During a **CLI** timed session, a local page is also at [http://127.0.0.1:18999](http://127.0.0.1:18999). HTTPS sites still show a connection error when blocked (the tool cannot intercept TLS). Use that URL to see the countdown.
 
-### macOS
-- macOS 26 Tahoe sets the `schg` (system immutable) flag on `/etc/hosts` — the script handles this automatically
-- DNS flushed via `dscacheutil -flushcache` + `mDNSResponder` restart
-- Touch ID works for sudo in the terminal
-
-### Note on HTTPS and the timer page
-Most sites use HTTPS — when blocked, the browser shows a connection error rather than the timer page (we can't intercept encrypted traffic). The timer page is available at `http://127.0.0.1:18999` anytime during a focus session.
-
-### Browsers and DNS-over-HTTPS
-Chrome, Firefox, and other browsers may use DNS-over-HTTPS which bypasses the system hosts file. Disable "Secure DNS" in your browser settings for the block to work.
+---
 
 ## FAQ
 
-### Q: I can still access a blocked site in my browser
-**A:** Check if your browser has DNS-over-HTTPS (Secure DNS) enabled — this bypasses the system hosts file. Turn it off in browser settings. Also try in Safari first to verify the system-level block works.
+**A blocked site still loads.** Turn off browser **Secure DNS** / DNS-over-HTTPS. Confirm in Safari first.
 
-### Q: What if my computer crashes?
-The backup file at `/etc/hosts.focus_blocker_backup` contains your original hosts. Run the recovery command above.
+**Sudo keeps asking.** Use the visudo line from `./start.sh visudo-hint`.
 
-### Q: How do I add/remove sites?
-Edit `config/sites.json` in the project folder, or run `python focus_blocker.py manage`.
+**Python / npm missing.** `brew install python@3.12 node`
+
+**Permission denied on `./start.sh`.** `chmod +x start.sh`
+
+**Add or remove sites.** Edit `config/sites.json`, or run `./.venv/bin/python3 focus_blocker.py manage`.
+
+---
 
 ## License
 
