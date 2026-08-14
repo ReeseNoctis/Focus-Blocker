@@ -42,11 +42,15 @@ function removeTask(i) { tasks.value.splice(i, 1) }
 function clearAll() { tasks.value = []; text.value = ''; error.value = '' }
 
 async function confirm() {
-  for (const t of tasks.value) {
-    await createTask(t.title, t.planned_minutes)
+  try {
+    for (const t of tasks.value) {
+      await createTask(t.title, t.planned_minutes)
+    }
+    emit('created')
+    clearAll()
+  } catch (e) {
+    error.value = `创建任务失败: ${e.message}（部分任务可能已创建，请检查列表后再试）`
   }
-  emit('created')
-  clearAll()
 }
 </script>
 
