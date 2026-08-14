@@ -62,6 +62,20 @@ npm run dev
 - 两者任一开启，网站即被屏蔽；两者都关闭才解除。
 - 屏蔽引擎新增 `--acquire <watcher|assistant>` / `--release <watcher|assistant>` 命令，学习助手用 `assistant`，Focus 守护进程用 `watcher`。
 
+### 🤖 AI 智能规划
+
+粘贴其他 AI 生成的行程文本，自动拆解成任务清单。
+
+1. 复制 `config/ai.json.example` 为 `config/ai.json`，填入你的 DeepSeek API Key：
+   ```bash
+   cp config/ai.json.example config/ai.json
+   # 编辑 config/ai.json，把 sk-... 换成真实 key
+   ```
+2. 打开学习助手，在「AI 智能规划」输入框粘贴行程，点「✨ 智能规划」。
+3. 预览并微调任务（可改标题/时长/删除），点「✅ 确认创建」。
+
+> `config/ai.json` 已被 git 忽略，不会提交你的 key。
+
 ## Quick Start
 
 ```bash
