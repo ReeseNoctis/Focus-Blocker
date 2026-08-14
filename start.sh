@@ -13,6 +13,12 @@ PID_FILE=.claude/run.pids
 
 stop() {
     echo "🛑 正在停止学习助手 …"
+    # 先解除网站屏蔽：kill 进程不会触发 --release，若专注会话仍在进行，
+    # /etc/hosts 的屏蔽条目会残留导致网站无法访问，所以这里主动 release。
+    REAL_PY="$("$PY" -c "import os,sys; print(os.path.realpath(sys.executable))" 2>/dev/null || true)"
+    if [ -n "$REAL_PY" ] && sudo -n "$REAL_PY" "$(pwd)/focus_blocker.py" --release assistant 2>/dev/null; then
+        echo "   🔓 已解除网站屏蔽"
+    fi
     if [ -f "$PID_FILE" ]; then
         while read -r pid; do
             kill "$pid" 2>/dev/null && echo "   已停止 PID $pid"
