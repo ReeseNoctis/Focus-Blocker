@@ -60,24 +60,32 @@ def plan_tasks(text: str) -> list[dict]:
         raise RuntimeError("missing DeepSeek API key (config/ai.json)")
     model = cfg.get("model") or DEFAULT_MODEL
 
-    prompt = _PROMPT.format(text=text)
-    resp = httpx.post(
-        API_URL,
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        json={
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-            "stream": False,
-        },
-        timeout=30.0,
-    )
+    prompt = _PROMPT.replace("{text}", text)
+    try:
+        resp = httpx.post(
+            API_URL,
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "stream": False,
+            },
+            timeout=30.0,
+        )
+    except httpx.HTTPError as exc:
+        raise RuntimeError(f"DeepSeek API error: {exc}") from exc
     if resp.status_code != 200:
         raise RuntimeError(f"DeepSeek API error {resp.status_code}: {resp.text[:200]}")
 
-    content = resp.json()["choices"][0]["message"]["content"]
+    try:
+        content = resp.json()["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, ValueError) as exc:
+        raise RuntimeError(f"DeepSeek API unexpected response: {exc}") from exc
     tasks: list[dict] = []
     for item in _extract_json(content):
+        if not isinstance(item, dict):
+            continue
         title = str(item.get("title", "")).strip()
         if not title:
             continue
