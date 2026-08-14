@@ -29,4 +29,11 @@ config/openssl.cnf
 # Virtual environment
 .venv/
 
+# Runtime pids from ./start.sh
+.run.pids
+
 .claude
+
+docs/
+
+tests/
