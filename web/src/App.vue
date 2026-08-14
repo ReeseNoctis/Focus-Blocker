@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import TaskList from './components/TaskList.vue'
 import FocusTimer from './components/FocusTimer.vue'
+import AiPlanner from './components/AiPlanner.vue'
 
 function localDateStr() {
   const d = new Date()
@@ -23,6 +24,7 @@ function onFinished() {
 <template>
   <main>
     <h1>🧘 沉浸式学习助手</h1>
+    <AiPlanner @created="listVersion++" />
     <FocusTimer :task="activeTask" @finished="onFinished" />
     <TaskList :date="today" :refresh-key="listVersion" @start="(t) => (activeTask = t)" />
   </main>

@@ -14,6 +14,7 @@ config/block_lock.json
 config/block_lock.lock
 config/server_pids.json
 config/session_state.json
+config/ai.json
 
 # Runtime database
 config/*.db

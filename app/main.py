@@ -7,7 +7,7 @@ import sys
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from app.db import init_db
-from app.routers import tasks, sessions
+from app.routers import ai, tasks, sessions
 from app.routers.sessions import finalize_session
 from app.session_manager import session_manager
 from app import blocker
@@ -58,3 +58,4 @@ async def websocket_endpoint(ws: WebSocket):
 
 app.include_router(tasks.router)
 app.include_router(sessions.router)
+app.include_router(ai.router)
