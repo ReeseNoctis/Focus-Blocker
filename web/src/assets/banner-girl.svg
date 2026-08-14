@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDF5F4"/>
+      <stop offset="0.6" stop-color="#FAF0F6"/>
+      <stop offset="1" stop-color="#F0EAF7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" fill="url(#sky)"/>
+  <!-- 樱花树 -->
+  <path d="M150 300 Q160 220 200 180 Q220 200 210 300 Z" fill="#B08968"/>
+  <path d="M200 180 Q140 150 120 110 Q200 100 260 130 Q300 110 340 120 Q320 170 260 190 Z" fill="#F5C4CE"/>
+  <circle cx="140" cy="120" r="10" fill="#F5A0B0"/><circle cx="220" cy="105" r="12" fill="#F0B6C4"/>
+  <circle cx="300" cy="115" r="10" fill="#F5A0B0"/><circle cx="180" cy="130" r="9" fill="#F0C6D2"/>
+  <!-- 飘落花瓣 -->
+  <circle cx="420" cy="60" r="7" fill="#F5A0B0"/><circle cx="560" cy="40" r="6" fill="#E8C3E0"/>
+  <circle cx="760" cy="70" r="7" fill="#F0B6C4"/><circle cx="980" cy="50" r="6" fill="#F5A0B0"/>
+  <!-- 少女（同形象，简化全身：白发高马尾 + 红装 + 看书） -->
+  <g transform="translate(720 40)">
+    <ellipse cx="0" cy="180" rx="90" ry="14" fill="#EADFEC"/>
+    <path d="M-14 60 Q12 34 44 42 Q52 78 40 108 Q12 118 -18 108 Z" fill="#F7F5F8"/>
+    <path d="M40 48 Q70 34 80 62 Q78 82 62 88 Q48 84 44 68 Z" fill="#F7F5F8"/>
+    <ellipse cx="12" cy="96" rx="26" ry="24" fill="#FDEBDD"/>
+    <circle cx="2" cy="98" r="3.5" fill="#C8474F"/><circle cx="22" cy="98" r="3.5" fill="#C8474F"/>
+    <path d="M6 108 Q12 112 18 108" fill="none" stroke="#D88A8F" stroke-width="2" stroke-linecap="round"/>
+    <path d="M-18 130 Q12 118 42 130 L38 172 Q12 180 -14 172 Z" fill="#C8474F"/>
+    <path d="M2 128 L12 140 L22 128 Q12 134 2 128 Z" fill="#A2363E"/>
+    <rect x="-26" y="120" width="52" height="8" rx="4" fill="#fff"/>
+    <rect x="-26" y="132" width="52" height="8" rx="4" fill="#fff" opacity="0.85"/>
+  </g>
+  <!-- 标题留白区提示（装饰性星点） -->
+  <circle cx="180" cy="60" r="3" fill="#B8A7E0"/><circle cx="640" cy="90" r="3" fill="#B8A7E0"/>
+  <circle cx="1100" cy="120" r="4" fill="#D6CCEA"/><circle cx="320" cy="90" r="3" fill="#D6CCEA"/>
+</svg>

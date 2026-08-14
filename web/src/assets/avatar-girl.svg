@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <clipPath id="circle"><circle cx="100" cy="100" r="100"/></clipPath>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5A0B0"/>
+      <stop offset="1" stop-color="#B8A7E0"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#circle)">
+    <rect width="200" height="200" fill="url(#bg)"/>
+    <!-- 白色头发（含高马尾，画在脸部之后、衣领之上） -->
+    <ellipse cx="100" cy="72" rx="46" ry="40" fill="#F7F5F8"/>
+    <!-- 高马尾（向后甩出） -->
+    <path d="M118 60 Q150 40 158 74 Q160 92 144 96 Q130 98 122 82 Z" fill="#F7F5F8"/>
+    <path d="M120 62 Q146 46 154 76 Q156 92 142 95" fill="none" stroke="#DCD6E2" stroke-width="2"/>
+    <!-- 脸 -->
+    <ellipse cx="100" cy="86" rx="34" ry="32" fill="#FDEBDD"/>
+    <!-- 刘海 -->
+    <path d="M66 72 Q78 50 100 52 Q124 52 134 74 Q124 60 100 62 Q78 62 66 72 Z" fill="#F7F5F8"/>
+    <!-- 红眸 -->
+    <circle cx="86" cy="88" r="4.5" fill="#C8474F"/>
+    <circle cx="114" cy="88" r="4.5" fill="#C8474F"/>
+    <circle cx="86.8" cy="86.6" r="1.4" fill="#fff"/>
+    <circle cx="114.8" cy="86.6" r="1.4" fill="#fff"/>
+    <!-- 嘴 -->
+    <path d="M94 100 Q100 105 106 100" fill="none" stroke="#D88A8F" stroke-width="2" stroke-linecap="round"/>
+    <!-- 红色交领古装 -->
+    <path d="M64 120 Q100 106 136 120 L132 152 Q100 164 68 152 Z" fill="#C8474F"/>
+    <path d="M88 118 L100 132 L112 118 Q100 124 88 118 Z" fill="#A2363E"/>
+    <!-- 发簪（古风元素） -->
+    <line x1="128" y1="56" x2="146" y2="48" stroke="#E8899A" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="147" cy="47" r="3" fill="#E8899A"/>
+  </g>
+  <circle cx="100" cy="100" r="99" fill="none" stroke="#F0E6E8" stroke-width="2"/>
+</svg>
