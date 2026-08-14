@@ -33,7 +33,7 @@ watch(() => props.refreshKey, load)
 </script>
 
 <template>
-  <section class="task-list">
+  <section class="task-list panel">
     <h2>今日任务</h2>
     <form @submit.prevent="add" class="add-form">
       <input v-model="newTitle" placeholder="输入任务，如：复习数学第三章" />
@@ -57,11 +57,6 @@ watch(() => props.refreshKey, load)
 .task-list {
   margin: 0;
   padding: 22px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
 }
 .add-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .add-form input:first-child { flex: 1; min-width: 160px; }
@@ -73,8 +68,8 @@ li {
   flex-wrap: wrap;
   gap: 10px 12px;
   padding: 14px 16px;
-  background: rgba(255, 252, 245, 0.7);
-  border: 1px solid var(--border);
+  background: rgba(255, 248, 236, 0.06);
+  border: 1px solid rgba(255, 236, 214, 0.14);
   border-radius: 14px;
   margin-bottom: 10px;
 }

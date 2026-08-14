@@ -82,7 +82,7 @@ watch(() => state.value.remaining, async (r) => {
 </script>
 
 <template>
-  <section class="timer">
+  <section class="timer panel">
     <div v-if="state.active" class="counting">
       <div class="clock">{{ fmt(state.remaining) }}</div>
       <div class="pause-label" v-if="state.paused">已暂停</div>
@@ -107,13 +107,8 @@ watch(() => state.value.remaining, async (r) => {
 .timer {
   margin: 0 0 20px;
   padding: 28px 24px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
   text-align: center;
   position: relative;
-  backdrop-filter: blur(10px);
 }
 .clock {
   font-family: var(--display);

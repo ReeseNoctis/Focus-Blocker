@@ -55,7 +55,7 @@ async function confirm() {
 </script>
 
 <template>
-  <section class="ai-planner">
+  <section class="ai-planner panel">
     <h2>AI 智能规划</h2>
     <p class="hint">粘贴其他 AI 生成的行程，自动拆解成任务</p>
     <textarea
@@ -93,11 +93,6 @@ async function confirm() {
 .ai-planner {
   margin: 0 0 20px;
   padding: 22px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
 }
 .hint { color: var(--text-dim); font-size: 13px; margin-top: 0; }
 textarea { width: 100%; resize: vertical; }

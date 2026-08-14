@@ -1,16 +1,18 @@
 :root {
   --bg: #e9d3b8;
-  --card: rgba(255, 248, 236, 0.88);
-  --border: rgba(156, 92, 64, 0.32);
+  --card: rgba(255, 244, 230, 0.08);
+  --border: rgba(212, 186, 150, 0.2);
   --text: #4a2e28;
-  --text-dim: #8a6a5a;
+  --text-dim: #7a5848;
   --primary: #c4474a;
   --primary-deep: #9e2d32;
   --secondary: #c9a36a;
   --red: #b13238;
   --gold: #e8c989;
   --ink: #6e1c24;
-  --shadow: 0 10px 28px -12px rgba(90, 40, 28, 0.35);
+  --shadow:
+    inset 0 1px 0 rgba(255, 252, 242, 0.35),
+    0 8px 28px -16px rgba(80, 48, 28, 0.16);
 
   --display: "Zhi Mang Xing", "Xingkai SC", "STXingkai", cursive;
   --title: "Ma Shan Zheng", "Xingkai SC", "STXingkai", cursive;
@@ -40,6 +42,15 @@ h1, h2 {
 }
 h1 { font-size: 48px; margin: 0; letter-spacing: 0.16em; }
 h2 { font-size: 28px; margin: 0 0 12px; letter-spacing: 0.12em; }
+
+.panel {
+  background: rgba(255, 248, 236, 0.08);
+  border: 1px solid rgba(255, 236, 214, 0.22);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(28px) saturate(0.95) brightness(1.08);
+  -webkit-backdrop-filter: blur(28px) saturate(0.95) brightness(1.08);
+}
 
 button {
   cursor: pointer;
@@ -125,13 +136,14 @@ input, textarea {
   font-family: var(--title);
   font-size: 16px;
   color: var(--text);
-  background: rgba(255, 252, 245, 0.9);
-  border: 1px solid rgba(156, 92, 64, 0.28);
+  background: rgba(255, 248, 236, 0.10);
+  border: 1px solid rgba(212, 186, 150, 0.14);
   border-radius: 10px;
   padding: 9px 12px;
   outline: none;
 }
 input:focus, textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(196, 71, 74, 0.16);
+  border-color: rgba(196, 71, 74, 0.45);
+  background: rgba(255, 248, 236, 0.16);
+  box-shadow: 0 0 0 3px rgba(196, 71, 74, 0.12);
 }
