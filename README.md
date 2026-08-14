@@ -2,63 +2,83 @@
 
 **English** | [中文](README.zh-CN.md)
 
-A local study assistant that **blocks distracting websites at the system level** while you focus. The web app plans tasks, runs a timer, and is watched by **Jiang Xue** (绛雪), a Q-version companion. When a session starts, `/etc/hosts` is rewritten so blocked sites fail in every browser and app — not just one extension.
+A local study tool that **blocks distracting websites at the OS level** (by editing the system hosts file) while you focus. On macOS you also get a web app with tasks, a timer, and **Jiang Xue** (绛雪), a companion who watches the session.
 
 ```
 Focus ON  →  hosts file rewritten  →  sites resolve to 127.0.0.1  →  blocked
 Focus OFF →  hosts restored        →  sites work again
 ```
 
+This is **not** a browser extension. Blocked sites fail in every app that uses the system DNS.
+
 ---
 
-## What you can do
+## Support by operating system
 
-| Feature | What it means |
+Read **your** column first. Full setup for each OS is below.
+
+| Capability | macOS | Linux | Windows |
+|---|---|---|---|
+| CLI timed focus + site block | Yes | Yes | Yes (UAC) |
+| TUI to list / add / remove sites | Yes | Yes | Yes (run as Administrator) |
+| One-command web app (`./start.sh`) | Yes | Partial (see Linux) | No |
+| Web: tasks, timer, Jiang Xue | Yes | Yes, if you start it yourself | Yes, if you start it yourself |
+| Web **Focus** button actually blocks sites | Yes (`sudo`) | Yes (`sudo`) | **No** (web calls `sudo`, which Windows does not have) |
+| AI planner (needs DeepSeek key) | Yes | Yes | Yes (does not need admin) |
+| Auto-block when system Focus Mode turns on | Yes | No | No |
+| Background watcher (LaunchAgent) | Yes | No | No |
+| `/etc/hosts` `schg` flag (macOS 26) | Yes | — | — |
+| DNS cache flush | Yes | Yes | Yes (`ipconfig /flushdns`) |
+
+**Recommended:** macOS, if you want the full product.  
+**Windows / Linux:** use the CLI to block sites. The web UI on Windows will **not** block the internet when you click Focus.
+
+---
+
+## Shared ideas (all platforms)
+
+- Blocklist file: `config/sites.json`. Matching is **exact** — list both `bilibili.com` and `www.bilibili.com`.
+- Hosts backup: next to the real hosts file, named `hosts.focus_blocker_backup`.
+- Only lines between `# >>> FOCUS_BLOCKER_START` and `# <<< FOCUS_BLOCKER_END` are changed.
+- Turn **off** browser Secure DNS / DNS-over-HTTPS, or the block will look like it “does nothing”.
+- AI planner: put a DeepSeek key in `config/ai.json` (copied from `config/ai.json.example`). The file is gitignored.
+
+Hosts paths:
+
+| OS | Hosts file |
 |---|---|
-| **Study web app** | Daily tasks, focus timer, pause / resume / stop |
-| **Jiang Xue** | Anime companion who reacts to idle, focusing, paused, and done |
-| **AI planner** | Paste a study plan; it splits into editable tasks (DeepSeek key optional) |
-| **System block** | Edits `/etc/hosts` (IPv4 + IPv6). Works outside the browser |
-| **Shared lock** | Web sessions and macOS Focus Mode can share one block; sites stay blocked until **both** are off |
-| **Safe restore** | Backup, signal handlers, and `finally` so a crash does not leave hosts broken |
-| **macOS 26** | Handles the `schg` immutable flag on `/etc/hosts` |
-| **CLI + TUI** | Optional terminal timer and site manager (`focus_blocker.py`) |
-
-Primary target is **macOS**. The CLI also runs on Linux and Windows.
+| macOS / Linux | `/etc/hosts` |
+| Windows | `C:\Windows\System32\drivers\etc\hosts` |
 
 ---
 
-## Deploy the study assistant (macOS)
+## macOS (full product)
 
-You should only need **one install command** and **one start command**. Copy each block as a whole.
+You get everything: web app, Jiang Xue, site block from the Focus button, CLI, optional Focus Mode automation.
 
-### 1. Install Python 3.12 and Node.js (once)
+### Install (once)
 
-If you do not have [Homebrew](https://brew.sh), install it from their site first. Then paste:
+Need [Homebrew](https://brew.sh) first. Then paste:
 
 ```bash
 brew install python@3.12 node
 ```
 
-### 2. Get the project (once)
-
-GitHub → green **Code** → **Download ZIP**, unzip, then open Terminal in that folder.
-
-Or paste:
+Get the repo (GitHub → **Code** → **Download ZIP**, or):
 
 ```bash
 git clone https://github.com/ReeseNoctis/Focus-Blocker.git
 cd Focus-Blocker
 ```
 
-### 3. Start
+### Start / stop
 
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
 
-The first run creates `.venv`, installs Python and frontend packages, copies `config/ai.json` if missing, starts the API and UI, then opens the app.
+First run creates `.venv`, installs packages, copies `config/ai.json` if missing, then opens the browser.
 
 | | |
 |---|---|
@@ -66,83 +86,48 @@ The first run creates `.venv`, installs Python and frontend packages, copies `co
 | API | [http://127.0.0.1:8000](http://127.0.0.1:8000) |
 | Stop | `./start.sh stop` |
 
-`./start.sh stop` also **releases the site block**, so killing the app cannot leave websites stuck.
+`./start.sh stop` also **unblocks sites**. Starting Focus will ask for **sudo** or Touch ID.
 
-Starting a focus session will ask for **sudo** (or Touch ID). That is required to edit `/etc/hosts`.
+### Use the web app
 
----
+1. Add tasks under **Today**, or paste a plan into **AI planner**.
+2. Click **Focus** (or start a free session on the timer).
+3. Listed sites go down until you stop or the timer ends.
+4. Jiang Xue reacts to idle / focusing / paused / done. You can click her.
 
-## Optional: AI planner
+### Optional: AI key
 
-1. Run `./start.sh` once (it creates `config/ai.json`).
-2. Open `config/ai.json` and replace the placeholder with a [DeepSeek](https://platform.deepseek.com/) API key.
-3. In the app, paste a plan into **AI planner** → **Plan** → edit → **Create**.
+After the first `./start.sh`, open `config/ai.json` and paste a [DeepSeek](https://platform.deepseek.com/) key. Without it, only AI planning is disabled.
 
-`config/ai.json` is gitignored. Never commit a real key.
-
-Without a key, everything else still works; only AI planning is disabled.
-
----
-
-## Optional: skip the sudo password
-
-Only needed if you do not want a password prompt on every focus start.
-
-1. Paste this; it prints **one line** to copy:
+### Optional: no sudo password
 
 ```bash
 ./start.sh visudo-hint
 ```
 
-2. Paste this to open the sudoers editor:
+Copy the **one line** it prints. Then:
 
 ```bash
 sudo visudo
 ```
 
-3. Put the printed line at the **bottom**, save, quit.
+Paste that line at the **bottom**, save, quit.
 
-After that, focus start/stop can run with `sudo -n` (no password).
-
----
-
-## How to use the app
-
-1. Open [http://localhost:5173](http://localhost:5173) (or let `./start.sh` open it).
-2. Add tasks under **Today**, or paste a plan into **AI planner**.
-3. Click **Focus** on a task (or start a free session on the timer).
-4. Distracting sites on the blocklist go down until you stop or the timer ends.
-5. Jiang Xue watches the session: she nags if you idle, points while you focus, and reacts if you pause.
-
-Edit the blocklist in `config/sites.json` (or with the CLI manager below). Hosts matching is **exact**: include both `example.com` and `www.example.com`.
-
----
-
-## CLI (optional)
-
-Same blocker, terminal UI. After `./start.sh` has created `.venv`:
+### Optional: CLI
 
 ```bash
-./.venv/bin/python3 focus_blocker.py          # timed session
-./.venv/bin/python3 focus_blocker.py list     # show sites
-./.venv/bin/python3 focus_blocker.py manage   # add / remove sites
-./.venv/bin/python3 focus_blocker.py config   # open config
-```
-
-Headless (Shortcuts, cron, LaunchAgent):
-
-```bash
+./.venv/bin/python3 focus_blocker.py
+./.venv/bin/python3 focus_blocker.py list
+./.venv/bin/python3 focus_blocker.py manage
 ./.venv/bin/python3 focus_blocker.py --block-only
 ./.venv/bin/python3 focus_blocker.py --unblock-only
 ```
 
----
+CLI sessions also serve [http://127.0.0.1:18999](http://127.0.0.1:18999).
 
-## macOS Focus Mode (optional)
+### Optional: follow macOS Focus Mode
 
-Block the same sites when a system Focus turns on.
-
-**A. Shortcuts automations** (simple)
+**A. Shortcuts**
 
 Shortcuts → **Automation** → **+** → Personal Automation:
 
@@ -151,49 +136,173 @@ Shortcuts → **Automation** → **+** → Personal Automation:
 | Focus **Turns On** | `/usr/bin/sudo -n /usr/bin/python3 /ABS/PATH/Focus-Blocker/focus_blocker.py --block-only` |
 | Focus **Turns Off** | `/usr/bin/sudo -n /usr/bin/python3 /ABS/PATH/Focus-Blocker/focus_blocker.py --unblock-only` |
 
-Replace `/ABS/PATH` with this folder. Repeat per Focus you use. Prefer the interpreter path from `./start.sh visudo-hint` if you use the venv.
+Use this folder as `/ABS/PATH`. Prefer the Python path from `./start.sh visudo-hint` if you use the venv. Repeat for each Focus you use.
 
 **B. Watcher daemon**
 
 ```bash
-./.venv/bin/python3 focus_watcher.py            # test in the foreground
-./.venv/bin/python3 focus_watcher.py --install  # LaunchAgent
+./.venv/bin/python3 focus_watcher.py
+./.venv/bin/python3 focus_watcher.py --install
 ./.venv/bin/python3 focus_watcher.py --uninstall
 ```
 
-The web app uses lock owner `assistant`. The watcher uses `watcher`. Either one on → sites blocked; both off → sites restored.
+Web app lock owner = `assistant`. Watcher = `watcher`. Either on → blocked; both off → restored.
 
----
-
-## Safety
-
-- Backup: `/etc/hosts.focus_blocker_backup`
-- Restore on Ctrl+C, signals, and `finally`
-- Only lines between `# >>> FOCUS_BLOCKER_START` and `# <<< FOCUS_BLOCKER_END` are touched
-- Writes are idempotent (no duplicate rows)
-- IPv4 and IPv6
-
-If hosts is left dirty after a crash:
+### If hosts is left dirty
 
 ```bash
 sudo cp /etc/hosts.focus_blocker_backup /etc/hosts
 ```
 
-During a **CLI** timed session, a local page is also at [http://127.0.0.1:18999](http://127.0.0.1:18999). HTTPS sites still show a connection error when blocked (the tool cannot intercept TLS). Use that URL to see the countdown.
+---
+
+## Linux
+
+You get: **CLI site blocking** (sudo). You can run the **web UI**, and the Focus button **can** block sites if `sudo` works. You do **not** get macOS Focus Mode, LaunchAgent, or `./start.sh` auto-opening a browser (`open` is macOS-only).
+
+### Install (once)
+
+Debian / Ubuntu example — paste:
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip nodejs npm git
+```
+
+Then:
+
+```bash
+git clone https://github.com/ReeseNoctis/Focus-Blocker.git
+cd Focus-Blocker
+python3 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+```
+
+### CLI (this is the supported Linux workflow)
+
+```bash
+./.venv/bin/python3 focus_blocker.py
+./.venv/bin/python3 focus_blocker.py list
+./.venv/bin/python3 focus_blocker.py manage
+```
+
+The first focus run will ask for **sudo** so it can edit `/etc/hosts`.
+
+### Web UI (optional)
+
+`./start.sh` may work if `bash`, Python, and `npm` exist. It will not call `open`. Or start the two processes yourself:
+
+```bash
+./.venv/bin/python3 -m uvicorn app.main:app --port 8000
+```
+
+In another terminal:
+
+```bash
+cd web && npm install && npm run dev
+```
+
+Then open [http://localhost:5173](http://localhost:5173). For the Focus button to block sites without a password prompt, add a visudo line like macOS (`./start.sh visudo-hint` after a venv exists).
+
+### If hosts is left dirty
+
+```bash
+sudo cp /etc/hosts.focus_blocker_backup /etc/hosts
+```
+
+---
+
+## Windows
+
+You get: **CLI site blocking** via UAC, editing `C:\Windows\System32\drivers\etc\hosts`.
+
+You do **not** get:
+
+- `./start.sh` (it is a bash script)
+- Site block from the web **Focus** button (the server runs `sudo -n`, which is not available)
+- macOS Focus Mode / watcher
+
+The web page (tasks, timer, Jiang Xue, AI planner) can still be opened if you start Python and Node yourself, but clicking Focus **will not** take sites down. Use the CLI to block.
+
+Do **not** use WSL expecting Windows Chrome/Edge to be blocked. WSL has its own hosts file.
+
+### Install (once)
+
+1. Install [Python 3](https://www.python.org/downloads/) (check **Add python.exe to PATH**).
+2. GitHub → **Code** → **Download ZIP**, unzip.  
+   Or Git: `git clone https://github.com/ReeseNoctis/Focus-Blocker.git`
+
+In **Command Prompt** or PowerShell, `cd` into the folder, then paste:
+
+```bat
+py -3 -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+```
+
+### Block sites (CLI)
+
+Run this **as Administrator**, or accept the UAC dialog when it appears:
+
+```bat
+.venv\Scripts\python focus_blocker.py
+```
+
+Other commands:
+
+```bat
+.venv\Scripts\python focus_blocker.py list
+.venv\Scripts\python focus_blocker.py manage
+.venv\Scripts\python focus_blocker.py --block-only
+.venv\Scripts\python focus_blocker.py --unblock-only
+```
+
+### Web UI only (no system block)
+
+Only if you still want Jiang Xue / tasks / AI, knowing Focus will not edit hosts.
+
+Terminal 1:
+
+```bat
+.venv\Scripts\python -m uvicorn app.main:app --port 8000
+```
+
+Install [Node.js](https://nodejs.org/), then terminal 2:
+
+```bat
+cd web
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+Optional AI: copy `config\ai.json.example` to `config\ai.json` and paste a DeepSeek key.
+
+### If hosts is left dirty
+
+Open Notepad **as Administrator**, or paste in an elevated Command Prompt:
+
+```bat
+copy /Y C:\Windows\System32\drivers\etc\hosts.focus_blocker_backup C:\Windows\System32\drivers\etc\hosts
+```
+
+Then:
+
+```bat
+ipconfig /flushdns
+```
 
 ---
 
 ## FAQ
 
-**A blocked site still loads.** Turn off browser **Secure DNS** / DNS-over-HTTPS. Confirm in Safari first.
+**A blocked site still loads.** Disable Secure DNS / DNS-over-HTTPS. On macOS, try Safari first.
 
-**Sudo keeps asking.** Use the visudo line from `./start.sh visudo-hint`.
+**macOS keeps asking for sudo.** `./start.sh visudo-hint`, then `sudo visudo`.
 
-**Python / npm missing.** `brew install python@3.12 node`
+**Windows Focus in the browser does nothing to YouTube.** Expected. Use `.venv\Scripts\python focus_blocker.py` as Administrator.
 
 **Permission denied on `./start.sh`.** `chmod +x start.sh`
-
-**Add or remove sites.** Edit `config/sites.json`, or run `./.venv/bin/python3 focus_blocker.py manage`.
 
 ---
 
