@@ -1,11 +1,11 @@
 <script setup>
 import { ref, watch, onUnmounted } from 'vue'
-import { startSession, stopSession, currentSession, connectWs } from '../api/client'
+import { startSession, stopSession, pauseSession, resumeSession, currentSession, connectWs } from '../api/client'
 
 const props = defineProps({ task: { type: Object, default: null } })
 const emit = defineEmits(['finished'])
 
-const state = ref({ active: false, remaining: 0, total_seconds: 0 })
+const state = ref({ active: false, paused: false, remaining: 0, total_seconds: 0 })
 const planned = ref(60)
 let closeWs = null
 
@@ -25,6 +25,14 @@ function fmt(s) {
 async function begin() {
   await startSession(props.task?.id ?? null, planned.value)
   emit('finished')  // prompt parent to refresh task list
+}
+
+async function pause() {
+  await pauseSession()
+}
+
+async function resume() {
+  await resumeSession()
 }
 
 // Stop a session, treating "already ended" (watchdog won the race → 409) as a
@@ -51,7 +59,7 @@ async function stop() {
   const stopped = await doStop(false)
   if (!stopped) {
     // 409 path: no stop ran, so the local timer state is stale — clear it.
-    state.value = { active: false, remaining: 0, total_seconds: 0 }
+    state.value = { active: false, paused: false, remaining: 0, total_seconds: 0 }
   }
 }
 
@@ -59,10 +67,11 @@ onUnmounted(() => closeWs && closeWs())
 closeWs = connectWs((s) => { state.value = s })
 currentSession().then((s) => { state.value = s })
 
-// auto-complete: when remaining hits 0, stop as completed
+// auto-complete: when remaining hits 0, stop as completed (only while actively
+// counting — a paused session must never auto-complete).
 let lastRemaining = null
 watch(() => state.value.remaining, async (r) => {
-  if (state.value.active && r === 0 && lastRemaining !== 0) {
+  if (state.value.active && !state.value.paused && r === 0 && lastRemaining !== 0) {
     lastRemaining = 0
     await doStop(true)
   } else if (r !== 0) {
@@ -75,7 +84,12 @@ watch(() => state.value.remaining, async (r) => {
   <section class="timer">
     <div v-if="state.active" class="counting">
       <div class="clock">{{ fmt(state.remaining) }}</div>
-      <button class="stop" @click="stop">🛑 停止（不计完成）</button>
+      <div class="pause-label" v-if="state.paused">⏸ 已暂停</div>
+      <div class="controls">
+        <button v-if="state.paused" @click="resume">▶ 继续</button>
+        <button v-else @click="pause">⏸ 暂停</button>
+        <button class="stop" @click="stop">🛑 结束</button>
+      </div>
     </div>
     <div v-else class="idle">
       <div class="task-name">{{ props.task ? props.task.title : '自由专注' }}</div>
@@ -88,5 +102,8 @@ watch(() => state.value.remaining, async (r) => {
 <style scoped>
 .timer { max-width: 640px; margin: 24px auto; padding: 24px; border: 1px solid #333; border-radius: 12px; text-align: center; }
 .clock { font-size: 56px; font-variant-numeric: tabular-nums; margin: 12px 0; }
+.pause-label { color: #fa0; margin-bottom: 8px; }
+.controls { display: flex; justify-content: center; gap: 8px; }
 button { margin: 0 8px; padding: 8px 16px; }
+.stop { color: #e88; }
 </style>

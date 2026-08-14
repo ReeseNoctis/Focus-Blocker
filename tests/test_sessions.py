@@ -42,3 +42,25 @@ def test_start_while_running_returns_409(tmp_path, monkeypatch):
 def test_stop_without_session_returns_409(tmp_path, monkeypatch):
     c = _client(tmp_path, monkeypatch)
     assert c.post("/api/sessions/stop").status_code == 409
+
+
+def test_pause_resume_lifecycle(tmp_path, monkeypatch):
+    c = _client(tmp_path, monkeypatch)
+    c.post("/api/sessions/start", json={"task_id": None, "minutes": 10})
+
+    r = c.post("/api/sessions/pause")
+    assert r.status_code == 200
+    assert r.json()["paused"] is True
+
+    r = c.post("/api/sessions/resume")
+    assert r.status_code == 200
+    assert r.json()["paused"] is False
+
+    # clean up
+    c.post("/api/sessions/stop", json={"completed": False})
+
+
+def test_pause_without_session_returns_409(tmp_path, monkeypatch):
+    c = _client(tmp_path, monkeypatch)
+    assert c.post("/api/sessions/pause").status_code == 409
+    assert c.post("/api/sessions/resume").status_code == 409

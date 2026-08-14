@@ -95,6 +95,31 @@ def stop_session(body: StopBody = StopBody()):
     return resp
 
 
+@router.post("/pause")
+def pause_session():
+    if session_manager.pause() is None:
+        raise HTTPException(409, "no active session or already paused")
+    # Pausing is a break from focusing — unblock sites per user preference.
+    ok, err = blocker.release("assistant")
+    state = session_manager.state()
+    if not ok:
+        print(f"failed to unblock sites on pause: {err}", file=sys.stderr)
+        state["warning"] = f"failed to unblock sites: {err}"
+    return state
+
+
+@router.post("/resume")
+def resume_session():
+    if session_manager.resume() is None:
+        raise HTTPException(409, "no active session or not paused")
+    ok, err = blocker.acquire("assistant")
+    if not ok:
+        # Re-blocking failed — roll back to paused so the clock stays frozen.
+        session_manager.pause()
+        raise HTTPException(502, f"block failed: {err}")
+    return session_manager.state()
+
+
 @router.get("/current")
 def current_session():
     return session_manager.state()

@@ -40,3 +40,45 @@ def test_state_idle_when_no_session():
     sm = SessionManager()
     st = sm.state()
     assert st["active"] is False
+
+
+def test_pause_freezes_remaining_and_resume_continues():
+    sm = SessionManager()
+    sm.start(task_id=3, minutes=10)
+    time.sleep(0.3)
+    before = sm.current()["remaining"]
+
+    sm.pause()
+    paused = sm.current()
+    assert paused["paused"] is True
+    assert paused["remaining"] <= before
+    frozen = paused["remaining"]
+
+    # Sleeping while paused must not change remaining.
+    time.sleep(0.3)
+    assert sm.current()["remaining"] == frozen
+
+    sm.resume()
+    resumed = sm.current()
+    assert resumed["paused"] is False
+    # Resume continues from the frozen remainder (not reset to full 600s).
+    assert resumed["remaining"] <= frozen
+    assert resumed["remaining"] < 600
+
+
+def test_pause_and_resume_when_no_session_are_noops():
+    sm = SessionManager()
+    assert sm.pause() is None
+    assert sm.resume() is None
+
+
+def test_stop_after_pause_returns_elapsed_not_full_duration():
+    sm = SessionManager()
+    sm.start(task_id=4, minutes=10)
+    time.sleep(0.3)
+    sm.pause()
+    time.sleep(0.2)  # paused time should not count toward duration
+    result = sm.stop(completed=True)
+    # duration reflects only active seconds, not the full 600s nor paused time
+    assert result["duration_seconds"] < 600
+    assert sm.current() is None

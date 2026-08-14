@@ -31,6 +31,12 @@ export function startSession(taskId, minutes) {
 export function stopSession(completed) {
   return request('/api/sessions/stop', { method: 'POST', body: JSON.stringify({ completed }) })
 }
+export function pauseSession() {
+  return request('/api/sessions/pause', { method: 'POST' })
+}
+export function resumeSession() {
+  return request('/api/sessions/resume', { method: 'POST' })
+}
 export function currentSession() {
   return request('/api/sessions/current')
 }
