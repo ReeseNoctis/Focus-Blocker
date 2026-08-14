@@ -56,7 +56,7 @@ async function confirm() {
 
 <template>
   <section class="ai-planner">
-    <h2>🤖 AI 智能规划</h2>
+    <h2>AI 智能规划</h2>
     <p class="hint">粘贴其他 AI 生成的行程，自动拆解成任务</p>
     <textarea
       v-model="text"
@@ -64,7 +64,7 @@ async function confirm() {
       placeholder="例如：上午学英语 90 分钟，然后刷 3 道 LeetCode，下午复习高数"
     ></textarea>
     <button class="plan-btn" :disabled="loading" @click="plan">
-      {{ loading ? '规划中…' : '✨ 智能规划' }}
+      {{ loading ? '规划中…' : '智能规划' }}
     </button>
     <p v-if="error" class="error">{{ error }}</p>
 
@@ -79,29 +79,35 @@ async function confirm() {
           @input="updateMinutes(i, $event.target.value)"
         />
         <span class="p-unit">分钟</span>
-        <button class="del" @click="removeTask(i)">✕</button>
+        <button class="del" @click="removeTask(i)">删除</button>
       </div>
       <div class="preview-actions">
-        <button class="confirm-btn" @click="confirm">✅ 确认创建（{{ tasks.length }} 项）</button>
-        <button class="cancel-btn" @click="clearAll">清空</button>
+        <button class="confirm-btn" @click="confirm">确认创建（{{ tasks.length }} 项）</button>
+        <button class="secondary cancel-btn" @click="clearAll">清空</button>
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.ai-planner { max-width: 640px; margin: 0 auto 24px; padding: 20px; border: 1px solid #333; border-radius: 12px; }
-.hint { color: #888; font-size: 13px; margin-top: 0; }
-textarea { width: 100%; box-sizing: border-box; padding: 10px; background: #111; color: #eee; border: 1px solid #333; border-radius: 8px; font-family: inherit; resize: vertical; }
-.plan-btn { margin-top: 10px; padding: 8px 16px; cursor: pointer; }
-.error { color: #e88; font-size: 14px; }
+.ai-planner {
+  max-width: 640px;
+  margin: 0 auto 24px;
+  padding: 22px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.hint { color: var(--text-dim); font-size: 13px; margin-top: 0; }
+textarea { width: 100%; resize: vertical; }
+.plan-btn { margin-top: 10px; }
+.error { color: var(--primary-deep); font-size: 14px; }
 .preview { margin-top: 16px; }
 .preview-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.p-title { flex: 1; padding: 6px; background: #111; color: #eee; border: 1px solid #333; border-radius: 6px; }
-.p-mins { width: 64px; padding: 6px; background: #111; color: #eee; border: 1px solid #333; border-radius: 6px; }
-.p-unit { color: #888; font-size: 13px; }
-.del { color: #c66; border: none; background: none; cursor: pointer; }
+.p-title { flex: 1; }
+.p-mins { width: 64px; }
+.p-unit { color: var(--text-dim); font-size: 13px; }
+.del { background: transparent; color: var(--text-dim); font-size: 14px; }
 .preview-actions { margin-top: 12px; display: flex; gap: 10px; }
-.confirm-btn { padding: 8px 16px; cursor: pointer; }
-.cancel-btn { padding: 8px 16px; cursor: pointer; color: #999; }
 </style>

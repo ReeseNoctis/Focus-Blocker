@@ -82,28 +82,58 @@ watch(() => state.value.remaining, async (r) => {
 
 <template>
   <section class="timer">
+    <img class="avatar" src="../assets/avatar-girl.svg" alt="吉祥物" />
     <div v-if="state.active" class="counting">
       <div class="clock">{{ fmt(state.remaining) }}</div>
-      <div class="pause-label" v-if="state.paused">⏸ 已暂停</div>
+      <div class="pause-label" v-if="state.paused">已暂停</div>
       <div class="controls">
-        <button v-if="state.paused" @click="resume">▶ 继续</button>
-        <button v-else @click="pause">⏸ 暂停</button>
-        <button class="stop" @click="stop">🛑 结束</button>
+        <button v-if="state.paused" @click="resume">继续</button>
+        <button v-else @click="pause">暂停</button>
+        <button class="secondary stop" @click="stop">结束</button>
       </div>
     </div>
     <div v-else class="idle">
       <div class="task-name">{{ props.task ? props.task.title : '自由专注' }}</div>
       <input v-model.number="planned" type="number" min="1" />
-      <button @click="begin">▶ 开始专注</button>
+      <button @click="begin">开始专注</button>
     </div>
   </section>
 </template>
 
 <style scoped>
-.timer { max-width: 640px; margin: 24px auto; padding: 24px; border: 1px solid #333; border-radius: 12px; text-align: center; }
-.clock { font-size: 56px; font-variant-numeric: tabular-nums; margin: 12px 0; }
-.pause-label { color: #fa0; margin-bottom: 8px; }
-.controls { display: flex; justify-content: center; gap: 8px; }
-button { margin: 0 8px; padding: 8px 16px; }
-.stop { color: #e88; }
+.timer {
+  max-width: 640px;
+  margin: 24px auto;
+  padding: 28px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  text-align: center;
+  position: relative;
+}
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto 8px;
+  border: 2px solid var(--border);
+}
+.clock {
+  font-size: 64px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 8px 0;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.pause-label { color: var(--primary-deep); margin-bottom: 10px; font-size: 14px; }
+.task-name { color: var(--text); margin-bottom: 12px; font-size: 18px; }
+.controls { display: flex; justify-content: center; gap: 10px; }
+.stop { color: var(--text-dim); }
+input { width: 90px; text-align: center; margin: 0 8px 12px; }
 </style>
